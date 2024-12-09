@@ -1,3 +1,47 @@
-from django.shortcuts import render
+from django.shortcuts import get_object_or_404
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework import status
+from authapi.models import CustomUser
+from .models import Notification
+from .serializers import NotificationSerializer
+from django.contrib.auth import get_user_model
 
-# Create your views here.
+
+class CreateNotificationAPIView(APIView):
+    def post(self, request):
+        """
+        Create a new notification for a user.
+        """
+        data = request.data
+        user = get_object_or_404(CustomUser, id=data.get('user_id'))
+        notification = Notification.objects.create(
+            user=user,
+            message=data['message'],
+            type=data['type']
+        )
+        serializer = NotificationSerializer(notification)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+
+
+class UnreadNotificationsAPIView(APIView):
+    def get(self, request, user_id):
+        """
+        Fetch unread notifications for a given user.
+        """
+        notifications = Notification.objects.filter(
+            user_id=user_id, is_read=False)
+        serializer = NotificationSerializer(notifications, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+class MarkNotificationAsReadAPIView(APIView):
+    def patch(self, request, notification_id):
+        """
+        Mark a specific notification as read.
+        """
+        notification = get_object_or_404(Notification, id=notification_id)
+        notification.is_read = True
+        notification.save()
+        serializer = NotificationSerializer(notification)
+        return Response(serializer.data, status=status.HTTP_200_OK)

@@ -2,12 +2,10 @@
 
 import { useState } from "react";
 import localFont from "next/font/local";
-import "./globals.css";
 import { Toaster } from "react-hot-toast";
 import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
-import { Provider } from "react-redux";
-import { store } from "../redux/store/store";
+import "./globals.css";
 
 // Define fonts
 const geistSans = localFont({
@@ -15,6 +13,7 @@ const geistSans = localFont({
   variable: "--font-geist-sans",
   weight: "100 900",
 });
+
 const geistMono = localFont({
   src: "./fonts/GeistMonoVF.woff",
   variable: "--font-geist-mono",
@@ -30,12 +29,12 @@ export default function RootLayout({ children }) {
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-gray-50 flex flex-col`}
       >
-        <Provider store={store}>
           {/* Header Section */}
           <Header
             onMenuClick={() => setSidebarOpen((prev) => !prev)}
             totalEarnings={totalEarnings}
           />
+
           {/* Main Content Section */}
           <div className="flex flex-1">
             <Sidebar open={sidebarOpen} />
@@ -43,9 +42,9 @@ export default function RootLayout({ children }) {
               {children}
             </main>
           </div>
+
           {/* Toast Notifications */}
           <Toaster />
-        </Provider>
       </body>
     </html>
   );

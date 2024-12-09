@@ -1,93 +1,75 @@
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+import { apiSlice } from "../../api/apiSlice";
+import { AUTH_URL } from "../../constant";
 
-export const authApi = createApi({
-    reducerPath: 'authApi',
-    baseQuery: fetchBaseQuery({
-        baseUrl: 'http://127.0.0.1:8000/api/auth/',
-        prepareHeaders: (headers, { getState }) => {
-            const token = getState().auth.token;
-            if (token) {
-                headers.set('Authorization', `Bearer ${token}`);
-            }
-            return headers;
-        },
-    }),
+export const authApiSlice = apiSlice.injectEndpoints({
     endpoints: (builder) => ({
+        // Get Current User
         currentUser: builder.query({
-            query: () => '/current-user/',
+            query: () => `${AUTH_URL}/current-user`,
         }),
 
+        // Register new user
         register: builder.mutation({
             query: (data) => ({
-                url: '/register/',
+                url: `${AUTH_URL}/register/`,
                 method: 'POST',
                 body: data,
             }),
         }),
 
+        // Verify email with OTP
         verifyEmail: builder.mutation({
-            query: (data) => ({
-                url: '/verify-email/',
+            query: (otp) => ({
+                url: `${AUTH_URL}/verify-email/`,
                 method: 'POST',
-                body: data,
+                body: otp,
             }),
         }),
 
+        // Login the user and get JWT tokens
         login: builder.mutation({
             query: (data) => ({
-                url: '/login/',
+                url: `${AUTH_URL}/login/`,
                 method: 'POST',
                 body: data,
             }),
         }),
 
+        // Logout the user
         logout: builder.mutation({
-            query: (data) => ({
-                url: '/logout/',
+            query: () => ({
+                url: `${AUTH_URL}/logout/`,
                 method: 'POST',
-                body: data,
             }),
         }),
 
-        passwordResetRequest: builder.mutation({
-            query: (data) => ({
-                url: '/password-reset/',
+        // Request a password reset link
+        requestPasswordReset: builder.mutation({
+            query: (email) => ({
+                url: `${AUTH_URL}/password-reset/`,
                 method: 'POST',
-                body: data,
+                body: { email },
             }),
         }),
 
-        passwordResetConfirm: builder.query({
-            query: ({ uidb64, token }) => `/password-reset-confirm/${uidb64}/${token}/`,
+        // Confirm the password reset token
+        confirmPasswordReset: builder.query({
+            query: ({ uidb64, token }) => `${AUTH_URL}/password-reset-confirm/${uidb64}/${token}/`,
         }),
 
+        // Set a new password after token confirmation
         setNewPassword: builder.mutation({
             query: (data) => ({
-                url: '/set-new-password/',
+                url: `${AUTH_URL}/set-new-password/`,
                 method: 'PATCH',
                 body: data,
             }),
         }),
 
+        // Change the user's password
         changePassword: builder.mutation({
             query: (data) => ({
-                url: '/change-password/',
-                method: 'POST',
-                body: data,
-            }),
-        }),
-
-        tokenObtainPair: builder.mutation({
-            query: (data) => ({
-                url: '/api/token/',
-                method: 'POST',
-                body: data,
-            }),
-        }),
-
-        tokenRefresh: builder.mutation({
-            query: (data) => ({
-                url: '/api/token/refresh/',
+                url: `${AUTH_URL}/change-password/`,
                 method: 'POST',
                 body: data,
             }),
@@ -95,16 +77,15 @@ export const authApi = createApi({
     }),
 });
 
+// Export hooks for using the API endpoints in components
 export const {
     useCurrentUserQuery,
     useRegisterMutation,
     useVerifyEmailMutation,
     useLoginMutation,
     useLogoutMutation,
-    usePasswordResetRequestMutation,
-    usePasswordResetConfirmQuery,
+    useRequestPasswordResetMutation,
+    useConfirmPasswordResetQuery,
     useSetNewPasswordMutation,
     useChangePasswordMutation,
-    useTokenObtainPairMutation,
-    useTokenRefreshMutation,
-} = authApi;
+} = authApiSlice;
