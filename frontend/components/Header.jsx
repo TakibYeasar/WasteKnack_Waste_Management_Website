@@ -92,7 +92,7 @@ const Header = ({ onMenuClick, totalEarnings }) => {
               </Button>
               <Button
                 href="/sign-in"
-                className="bg-green-600 hover:bg-green-700 text-white text-sm"
+                className="bg-cyan-600 hover:bg-cyan-700 text-white text-sm"
               >
                 Sign In
                 <LogIn className="ml-1 md:ml-2 h-4 w-4 md:h-5 md:w-5" />
