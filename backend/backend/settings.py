@@ -45,7 +45,14 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt",
     'rest_framework_simplejwt.token_blacklist',
     "corsheaders",
+    "authapi",
+    "user",
+    "waste",
+    "notification",
+    "transaction",
 ]
+
+AUTH_USER_MODEL = 'authapi.CustomUser'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
