@@ -3,6 +3,8 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from django.shortcuts import get_object_or_404
+from django.db import transaction
+from transaction.models import Transaction
 from .models import Reward
 from .serializers import RewardSerializer
 
@@ -37,7 +39,7 @@ class UpdateRewardPointsView(APIView):
 class SaveRewardView(APIView):
     def post(self, request, user_id):
         data = {
-            'user_id': user_id,
+            'user': user_id,
             'name': 'Waste Collection Reward',
             'collection_info': 'Points earned from waste collection',
             'points': request.data.get('amount', 0),
@@ -46,7 +48,18 @@ class SaveRewardView(APIView):
         }
         serializer = RewardSerializer(data=data)
         if serializer.is_valid():
-            serializer.save()
+            with transaction.atomic():  # Ensuring atomicity for both operations
+                # Save the reward
+                reward = serializer.save()
+
+                # Create a transaction for the reward
+                Transaction.objects.create(
+                    user=reward.user,
+                    type='earned',
+                    amount=reward.points,
+                    description=f"Reward earned: {reward.name}"
+                )
+
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -77,17 +90,40 @@ class GetAvailableRewardsView(APIView):
 class RedeemRewardView(APIView):
     def post(self, request, user_id, reward_id):
         reward = get_object_or_404(Reward, user_id=user_id)
-        if reward_id == 0:
-            reward.points = 0
-            reward.updated_at = now()
-            reward.save()
-        else:
-            available_reward = get_object_or_404(
-                Reward, id=reward_id, is_available=True)
-            if reward.points < available_reward.points:
-                return Response({'detail': 'Insufficient points or invalid reward'}, status=status.HTTP_400_BAD_REQUEST)
-            reward.points -= available_reward.points
-            reward.updated_at = now()
-            reward.save()
+
+        with transaction.atomic():  # Ensuring atomicity for reward and transaction update
+            if reward_id == 0:  # Clear all points
+                redeemed_points = reward.points
+                reward.points = 0
+                reward.updated_at = now()
+                reward.save()
+
+                # Create a transaction for clearing all points
+                Transaction.objects.create(
+                    user=reward.user,
+                    type='redeemed',
+                    amount=redeemed_points,
+                    description="All reward points redeemed."
+                )
+            else:  # Redeem a specific reward
+                available_reward = get_object_or_404(
+                    Reward, id=reward_id, is_available=True
+                )
+                if reward.points < available_reward.points:
+                    return Response({'detail': 'Insufficient points or invalid reward'}, status=status.HTTP_400_BAD_REQUEST)
+
+                redeemed_points = available_reward.points
+                reward.points -= redeemed_points
+                reward.updated_at = now()
+                reward.save()
+
+                # Create a transaction for the specific reward redemption
+                Transaction.objects.create(
+                    user=reward.user,
+                    type='redeemed',
+                    amount=redeemed_points,
+                    description=f"Reward redeemed: {available_reward.name}"
+                )
+
         serializer = RewardSerializer(reward)
         return Response(serializer.data, status=status.HTTP_200_OK)

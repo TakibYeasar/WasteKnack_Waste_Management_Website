@@ -39,17 +39,18 @@ class UserRegisterSerializer(serializers.ModelSerializer):
         return CustomUser.objects.create_user(**validate_data)
 
 
-class LoginSerializer(serializers.ModelSerializer):
+class LoginSerializer(serializers.Serializer):
     email = serializers.EmailField(max_length=255)
     password = serializers.CharField(max_length=128, write_only=True)
-    access_token = serializers.CharField(max_length=255, write_only=True)
-    refresh_token = serializers.CharField(max_length=255, write_only=True)
-    
+    access_token = serializers.CharField(max_length=255, read_only=True)
+    refresh_token = serializers.CharField(max_length=255, read_only=True)
+
     def validate(self, attrs):
         user = authenticate(email=attrs['email'], password=attrs['password'])
-        
+
         if not user:
-            raise AuthenticationFailed("Invalid credentials, please try again.")
+            raise AuthenticationFailed(
+                "Invalid credentials, please try again.")
         if not user.is_verified:
             raise AuthenticationFailed("Email is not verified.")
 
@@ -59,7 +60,6 @@ class LoginSerializer(serializers.ModelSerializer):
             'access_token': tokens['access'],
             'refresh_token': tokens['refresh']
         }
-
 
 class LogoutUserSerializer(serializers.Serializer):
     refresh_token = serializers.CharField()

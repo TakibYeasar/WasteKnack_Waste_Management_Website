@@ -3,6 +3,10 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.shortcuts import get_object_or_404
 from .models import Report, CollectedWaste
+from user.models import Reward
+from transaction.models import Transaction
+from notification.models import Notification
+from django.db import transaction
 from .serializers import ReportSerializer, CollectedWasteSerializer
 
 
@@ -10,8 +14,31 @@ class CreateReportAPIView(APIView):
     def post(self, request):
         serializer = ReportSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save()
-            # Logic for awarding points, creating notifications, etc., can be added here
+            with transaction.atomic():  # Ensure atomicity for all operations
+                # Save the report
+                report = serializer.save()
+
+                # Update or create a reward record
+                reward, created = Reward.objects.get_or_create(
+                    user=report.user)
+                reward.points += 10
+                reward.save()
+
+                # Create a transaction for the earned points
+                Transaction.objects.create(
+                    user=report.user,
+                    type='earned',
+                    amount=10,
+                    description="Points earned for reporting waste."
+                )
+
+                # Create a notification for the user
+                Notification.objects.create(
+                    user=report.user,
+                    message="You have earned 10 points for reporting waste!",
+                    type='success'
+                )
+
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
