@@ -22,6 +22,7 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class UserRegisterSerializer(serializers.ModelSerializer):
+    confirm_password = serializers.CharField(write_only=True, max_length=255)
     class Meta:
         model = CustomUser
         fields = ['email', 'username', 'first_name',

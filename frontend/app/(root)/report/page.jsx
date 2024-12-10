@@ -14,7 +14,7 @@ const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
 const libraries = ['places'];
 
-const Report = () => {
+const ReportPage = () => {
 
     const [user, setUser] = useState(null);
     const router = useRouter();
@@ -379,4 +379,4 @@ const Report = () => {
   )
 }
 
-export default Report
+export default ReportPage
