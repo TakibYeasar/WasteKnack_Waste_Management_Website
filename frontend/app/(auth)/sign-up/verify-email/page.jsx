@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useVerifyEmailMutation } from '../../../../redux/features/auth/authSlice';
+import { useVerifyEmailMutation } from '../../../../redux/features/auth/authApi';
 
 const EmailVerification = () => {
     const [otp, setOtp] = useState('');

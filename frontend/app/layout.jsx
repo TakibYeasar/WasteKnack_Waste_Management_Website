@@ -6,6 +6,8 @@ import { Toaster } from "react-hot-toast";
 import Sidebar from "@/components/Sidebar";
 import Header from "@/components/Header";
 import "./globals.css";
+import { Provider } from "react-redux";
+import store from "../redux/store/store";
 
 // Define fonts
 const geistSans = localFont({
@@ -29,6 +31,7 @@ export default function RootLayout({ children }) {
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen bg-gray-50 flex flex-col`}
       >
+        <Provider store={store}>
           {/* Header Section */}
           <Header
             onMenuClick={() => setSidebarOpen((prev) => !prev)}
@@ -45,7 +48,8 @@ export default function RootLayout({ children }) {
 
           {/* Toast Notifications */}
           <Toaster />
+        </Provider>
       </body>
-    </html>
+    </html >
   );
 }

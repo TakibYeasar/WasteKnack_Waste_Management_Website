@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useRegisterMutation } from '../../../redux/features/auth/authSlice';
+import { useRegisterMutation } from '../../../redux/features/auth/authApi';
 import { FaFacebook, FaGoogle, FaTwitter } from 'react-icons/fa';
 
 const SignUp = () => {
@@ -21,7 +21,7 @@ const SignUp = () => {
     const [registerUser, { isLoading, error: registerError }] = useRegisterMutation();
 
     const handleClose = () => {
-        router.push('/'); // Redirect to home on close
+        router.push('/');
     };
 
     const handleChange = (e) => {

@@ -8,27 +8,26 @@ import { useRouter } from 'next/navigation';
 import { useDispatch, useSelector } from "react-redux";
 import { useMediaQuery } from "../hooks/useMediaQuery";
 import toast from 'react-hot-toast';
-import { useState } from "react";
+import { useLogoutMutation } from "../redux/features/auth/authApi";
 
 const Header = ({ onMenuClick, totalEarnings }) => {
-  const currentUser = useState('')
-  // const router = useRouter();
-  // const { userInfo } = useSelector((state) => state.auth);
-  // const dispatch = useDispatch();
+  const router = useRouter();
+  const dispatch = useDispatch();
   const isMobile = useMediaQuery("(max-width: 768px)");
-  // const [logoutApiCall] = useLogoutMutation();
+  const { userInfo } = useSelector((state) => state.auth); // Get current user info
+  const [logoutApiCall] = useLogoutMutation();
 
-  // const handleLogout = async () => {
-  //   try {
-  //     await logoutApiCall().unwrap();
-  //     dispatch(logout());
-  //     toast.success("You have logged out successfully!");
-  //     router.push("/sign-in");
-  //   } catch (error) {
-  //     toast.error("Error logging out. Please try again.");
-  //     console.error(error);
-  //   }
-  // };
+  const handleLogout = async () => {
+    try {
+      await logoutApiCall().unwrap(); // Perform API logout
+      dispatch(userLoggedOut()); // Update Redux state
+      toast.success("You have logged out successfully!");
+      router.push("/sign-in"); // Redirect to sign-in page
+    } catch (error) {
+      toast.error("Error logging out. Please try again.");
+      console.error(error);
+    }
+  };
 
   return (
     <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
@@ -81,22 +80,20 @@ const Header = ({ onMenuClick, totalEarnings }) => {
             <span className="font-semibold text-sm md:text-base text-gray-800">{totalEarnings}</span>
           </div>
 
-          {!currentUser ? (
+          {!userInfo ? (
             <div className="flex space-x-2">
-              <Button
-                href="/sign-up"
-                className="bg-green-600 hover:bg-green-700 text-white text-sm"
-              >
-                Sign Up
-                <LogIn className="ml-1 md:ml-2 h-4 w-4 md:h-5 md:w-5" />
-              </Button>
-              <Button
-                href="/sign-in"
-                className="bg-cyan-600 hover:bg-cyan-700 text-white text-sm"
-              >
-                Sign In
-                <LogIn className="ml-1 md:ml-2 h-4 w-4 md:h-5 md:w-5" />
-              </Button>
+              <Link href="/sign-up">
+                <Button className="bg-green-600 hover:bg-green-700 text-white text-sm">
+                  Sign Up
+                  <LogIn className="ml-1 md:ml-2 h-4 w-4 md:h-5 md:w-5" />
+                </Button>
+              </Link>
+              <Link href="/sign-in">
+                <Button className="bg-cyan-600 hover:bg-cyan-700 text-white text-sm">
+                  Sign In
+                  <LogIn className="ml-1 md:ml-2 h-4 w-4 md:h-5 md:w-5" />
+                </Button>
+              </Link>
             </div>
           ) : (
             <DropdownMenu>
@@ -107,14 +104,14 @@ const Header = ({ onMenuClick, totalEarnings }) => {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => console.log(currentUser)}>
-                    {currentUser.username}
-                </DropdownMenuItem>
                 <DropdownMenuItem>
                   <Link href="/profile">Profile</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem>Settings</DropdownMenuItem>
-                {/* <DropdownMenuItem onClick={handleLogout}>Sign Out</DropdownMenuItem> */}
+                <DropdownMenuItem onClick={handleLogout}>
+                  Sign Out
+                  <LogOut className="ml-2 h-4 w-4" />
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           )}
