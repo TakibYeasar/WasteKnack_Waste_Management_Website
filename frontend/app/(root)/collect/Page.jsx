@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'react-hot-toast';
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { useCurrentUserQuery } from "../../../redux/features/auth/authApi";
 
 const geminiApiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY
 const ITEMS_PER_PAGE = 5
@@ -17,7 +18,7 @@ const CollectPage = () => {
     const [hoveredWasteType, setHoveredWasteType] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
-    const [user, setUser] = useState(null);
+    const [user, setUser] = useCurrentUserQuery();
 
     const [selectedTask, setSelectedTask] = useState(null);
     const [verificationImage, setVerificationImage] = useState(null);
