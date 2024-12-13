@@ -1,29 +1,57 @@
 import { createSlice } from "@reduxjs/toolkit";
 
 const initialState = {
-    accessToken: null,
     user: null,
-    userInfo: null,
+    accessToken: null,
+    refreshToken: null,
+    isAuthenticated: false,
+    loading: false,
+    error: null,
+    successMessage: null,
 };
 
 const authSlice = createSlice({
-    name: 'auth',
+    name: "auth",
     initialState,
     reducers: {
-        userLoggedIn: (state, action) => {
-            state.accessToken = action.payload.accessToken;
-            state.user = action.payload.user;
-        },
-        userLoggedOut: (state) => {
-            state.accessToken = null;
+        resetAuthState: (state) => {
+            state.loading = false;
+            state.error = null;
+            state.successMessage = null;
             state.user = null;
-            state.userInfo = null;
+            state.accessToken = null;
+            state.refreshToken = null;
+            state.isAuthenticated = false;
         },
-        addUserInfo: (state, action) => {
-            state.userInfo = action.payload;
+        setTokens: (state, action) => {
+            const { accessToken, refreshToken } = action.payload;
+            state.accessToken = accessToken;
+            state.refreshToken = refreshToken;
+            state.isAuthenticated = Boolean(accessToken);
         },
-    }
-})
+        setUser: (state, action) => {
+            state.user = action.payload;
+            state.isAuthenticated = Boolean(action.payload);
+        },
+        setLoading: (state, action) => {
+            state.loading = action.payload;
+        },
+        setError: (state, action) => {
+            state.error = action.payload;
+        },
+        setSuccessMessage: (state, action) => {
+            state.successMessage = action.payload;
+        },
+    },
+});
 
-export const { userLoggedIn, userLoggedOut, addUserInfo } = authSlice.actions;
+export const {
+    resetAuthState,
+    setTokens,
+    setUser,
+    setLoading,
+    setError,
+    setSuccessMessage,
+} = authSlice.actions;
+
 export default authSlice.reducer;

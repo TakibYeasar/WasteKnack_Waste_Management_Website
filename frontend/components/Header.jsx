@@ -5,33 +5,37 @@ import { Button } from "@/components/ui/button";
 import { Menu, Coins, Leaf, Search, Bell, User, ChevronDown, LogIn, LogOut } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useRouter } from 'next/navigation';
-import { useDispatch, useSelector } from "react-redux";
 import { useMediaQuery } from "../hooks/useMediaQuery";
 import toast from 'react-hot-toast';
-import { useLogoutMutation } from "../redux/features/auth/authApi";
+import { useCurrentUserQuery, useLogoutMutation } from "../redux/features/auth/authApi";
 
 const Header = ({ onMenuClick, totalEarnings }) => {
   const router = useRouter();
-  const dispatch = useDispatch();
   const isMobile = useMediaQuery("(max-width: 768px)");
-  const { userInfo } = useSelector((state) => state.auth); // Get current user info
-  const [logoutApiCall] = useLogoutMutation();
+  const { data: userInfo } = useCurrentUserQuery();
+  const [logoutApiCall] = useLogoutMutation(); // Use the mutation hook here
 
   const handleLogout = async () => {
     try {
-      await logoutApiCall().unwrap(); // Perform API logout
-      dispatch(userLoggedOut()); // Update Redux state
-      toast.success("You have logged out successfully!");
-      router.push("/sign-in"); // Redirect to sign-in page
+      const response = await logoutApiCall().unwrap();
+
+      toast.success(response?.message || "You have logged out successfully!");
+      localStorage.clear();
+      sessionStorage.clear();
+      router.push("/sign-in");
     } catch (error) {
-      toast.error("Error logging out. Please try again.");
-      console.error(error);
+      const errorMessage =
+        error?.data?.detail || "Error logging out. Please try again.";
+      toast.error(errorMessage);
+
+      console.error("Logout error:", error);
     }
   };
 
   return (
     <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
       <div className="flex items-center justify-between px-4 py-2">
+        {/* Left Section */}
         <div className="flex items-center">
           <Button variant="ghost" size="icon" className="mr-2 md:mr-4" onClick={onMenuClick}>
             <Menu className="h-6 w-6" />
@@ -44,6 +48,7 @@ const Header = ({ onMenuClick, totalEarnings }) => {
           </Link>
         </div>
 
+        {/* Search Bar (Visible on larger screens) */}
         {!isMobile && (
           <div className="flex-1 max-w-xl mx-4">
             <div className="relative">
@@ -57,6 +62,7 @@ const Header = ({ onMenuClick, totalEarnings }) => {
           </div>
         )}
 
+        {/* Right Section */}
         <div className="flex items-center space-x-4">
           {isMobile && (
             <Button variant="ghost" size="icon" className="mr-2">
@@ -64,6 +70,7 @@ const Header = ({ onMenuClick, totalEarnings }) => {
             </Button>
           )}
 
+          {/* Notifications Dropdown */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="mr-2 relative">
@@ -71,16 +78,39 @@ const Header = ({ onMenuClick, totalEarnings }) => {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-64">
-              {/* Notification dropdown can be implemented here */}
+              {/* Notification items go here */}
             </DropdownMenuContent>
           </DropdownMenu>
 
+          {/* Total Earnings */}
           <div className="mr-2 md:mr-4 flex items-center bg-gray-100 rounded-full px-2 md:px-3 py-1">
             <Coins className="h-4 w-4 md:h-5 md:w-5 mr-1 text-green-500" />
             <span className="font-semibold text-sm md:text-base text-gray-800">{totalEarnings}</span>
           </div>
 
-          {!userInfo ? (
+          {/* Authentication State: Sign In/Sign Up or User Profile */}
+          {userInfo ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="flex items-center">
+                  <User className="h-5 w-5 mr-1" />
+                  <ChevronDown className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem>
+                  <Link href="/profile">Profile</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem>
+                  <Link href="/settings">Settings</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleLogout}>
+                  Sign Out
+                  <LogOut className="ml-2 h-4 w-4" />
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
             <div className="flex space-x-2">
               <Link href="/sign-up">
                 <Button className="bg-green-600 hover:bg-green-700 text-white text-sm">
@@ -95,25 +125,6 @@ const Header = ({ onMenuClick, totalEarnings }) => {
                 </Button>
               </Link>
             </div>
-          ) : (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="flex items-center">
-                  <User className="h-5 w-5 mr-1" />
-                  <ChevronDown className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem>
-                  <Link href="/profile">Profile</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem>Settings</DropdownMenuItem>
-                <DropdownMenuItem onClick={handleLogout}>
-                  Sign Out
-                  <LogOut className="ml-2 h-4 w-4" />
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
           )}
         </div>
       </div>

@@ -17,7 +17,7 @@ class UserSerializer(serializers.ModelSerializer):
         model = CustomUser
         fields = [
             "id", "email", "username", "first_name", "last_name",
-            "role", "is_active", "is_verified", "is_approved"
+            "role", "is_active", "is_verified"
         ]
 
 

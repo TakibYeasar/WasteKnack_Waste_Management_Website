@@ -8,6 +8,7 @@ import { StandaloneSearchBox, useJsApiLoader } from '@react-google-maps/api';
 import { Libraries } from '@react-google-maps/api';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
+import { useCurrentUserQuery } from "../../../redux/features/auth/authApi";
 
 const geminiApiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
 const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
@@ -16,7 +17,6 @@ const libraries = ['places'];
 
 const ReportPage = () => {
 
-    const [user, setUser] = useState(null);
     const router = useRouter();
 
     const [reports, setReports] = useState([]);
@@ -187,14 +187,8 @@ const ReportPage = () => {
 
     useEffect(() => {
         const checkUser = async () => {
-            const email = localStorage.getItem('userEmail');
-            if (email) {
-                let user = await getUserByEmail(email);
-                if (!user) {
-                    user = await createUser(email, 'Anonymous User');
-                }
-                setUser(user);
-
+            const userInfo = useCurrentUserQuery();
+            if (userInfo) {
                 const recentReports = await getRecentReports();
                 const formattedReports = recentReports.map((report) => ({
                     ...report,
@@ -202,7 +196,7 @@ const ReportPage = () => {
                 }));
                 setReports(formattedReports);
             } else {
-                router.push('/sign-up');
+                router.push('/sign-in');
             }
         };
         checkUser();

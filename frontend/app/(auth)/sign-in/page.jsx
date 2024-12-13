@@ -16,22 +16,22 @@ const SignIn = () => {
 
     useEffect(() => {
         if (data) {
-            toast.success('Login successful!'); // Display success toast
-            router.push('/'); // Redirect to homepage on successful login
+            toast.success('Login successful!');
+            router.push('/');
         }
 
         if (error) {
-            toast.error(error.data?.detail || 'Login failed!'); // Show error message from the API response
+            toast.error(error.data?.detail || 'Login failed!');
         }
     }, [data, error, router]);
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        login({ email, password, rememberMe }); // Trigger the login mutation with the provided data
+        login({ email, password, rememberMe });
     };
 
     const handleClose = () => {
-        router.push('/'); // Redirect to home on close
+        router.push('/');
     };
 
     return (

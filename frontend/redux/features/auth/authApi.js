@@ -1,174 +1,139 @@
+// features/auth/authApi.js
 import { apiSlice } from "../../api/apiSlice";
 import { AUTH_URL } from "../../constant";
-import { addUserInfo, userLoggedIn, userLoggedOut } from './authSlice';
+import { resetAuthState, setTokens, setUser } from "./authSlice";
 
 export const authApi = apiSlice.injectEndpoints({
     endpoints: (builder) => ({
-        // Get Current User
+        // Fetch the current user
         currentUser: builder.query({
-            query: () => `${AUTH_URL}/current-user`,
-            async onQueryStarted(arg, { queryFulfilled, dispatch }) {
-                try {
-                    const result = await queryFulfilled;
-
-                    // Save user info in the state
-                    dispatch(addUserInfo(result.data));
-                } catch (err) {
-                    console.log("Error fetching current user:", err);
-                }
-            },
+            query: () => ({
+                url: `${AUTH_URL}/current-user/`,
+            }),
         }),
 
-        // Register new user
+        // Register a new user
         register: builder.mutation({
             query: (data) => ({
                 url: `${AUTH_URL}/register/`,
-                method: 'POST',
+                method: "POST",
                 body: data,
             }),
-            async onQueryStarted(arg, { queryFulfilled, dispatch }) {
-                try {
-                    const result = await queryFulfilled;
-
-                    // Save auth info in local storage
-                    localStorage.setItem(
-                        'auth',
-                        JSON.stringify({
-                            accessToken: result.data.accessToken,
-                            user: result.data.user,
-                        })
-                    );
-
-                    // Dispatch login action
-                    dispatch(
-                        userLoggedIn({
-                            accessToken: result.data.accessToken,
-                            user: result.data.user,
-                        })
-                    );
-                } catch (err) {
-                    console.log("Error registering user:", err);
-                }
-            },
         }),
 
-        // Verify email with OTP
+        // Verify email
         verifyEmail: builder.mutation({
-            query: (otp) => ({
+            query: (data) => ({
                 url: `${AUTH_URL}/verify-email/`,
-                method: 'POST',
-                body: otp,
+                method: "POST",
+                body: data,
             }),
         }),
 
-        // Login the user and get JWT tokens
+        // Login
         login: builder.mutation({
             query: (data) => ({
                 url: `${AUTH_URL}/login/`,
-                method: 'POST',
+                method: "POST",
                 body: data,
             }),
-            async onQueryStarted(arg, { queryFulfilled, dispatch }) {
+            async onQueryStarted(_, { queryFulfilled, dispatch }) {
                 try {
-                    const result = await queryFulfilled;
+                    const { data } = await queryFulfilled;
+                    const { access_token, refresh_token, email, role } = data;
 
-                    // Save auth info in local storage
+                    // Dispatch tokens and user details to the store
+                    dispatch(setTokens({ accessToken: access_token, refreshToken: refresh_token }));
+                    dispatch(setUser({ email, role }));
+
+                    // Save tokens and user info to localStorage
                     localStorage.setItem(
-                        'auth',
-                        JSON.stringify({
-                            accessToken: result.data.accessToken,
-                            user: result.data.user,
-                        })
+                        "authToken",
+                        JSON.stringify({ access_token, refresh_token })
                     );
-
-                    // Dispatch login action
-                    dispatch(
-                        userLoggedIn({
-                            accessToken: result.data.accessToken,
-                            user: result.data.user,
-                        })
-                    );
-                } catch (err) {
-                    console.log("Error logging in user:", err);
+                    localStorage.setItem("user", JSON.stringify({ email, role }));
+                } catch (error) {
+                    console.error("Login failed:", error);
                 }
             },
         }),
 
-        // Logout the user
+        // Logout
         logout: builder.mutation({
             query: () => ({
                 url: `${AUTH_URL}/logout/`,
-                method: 'POST',
+                method: "POST",
             }),
-            async onQueryStarted(arg, { queryFulfilled, dispatch }) {
+            async onQueryStarted(_, { queryFulfilled, dispatch }) {
                 try {
                     await queryFulfilled;
 
-                    // Remove auth info from local storage
-                    localStorage.removeItem('auth');
-
-                    // Dispatch logout action
-                    dispatch(userLoggedOut());
-                } catch (err) {
-                    console.log("Error logging out user:", err);
+                    // Clear state and storage
+                    dispatch(resetAuthState());
+                    localStorage.clear();
+                    sessionStorage.clear();
+                } catch (error) {
+                    console.error("Logout failed:", error);
                 }
             },
         }),
 
-        // Request a password reset link
+        // Request password reset
         requestPasswordReset: builder.mutation({
             query: (email) => ({
                 url: `${AUTH_URL}/password-reset/`,
-                method: 'POST',
+                method: "POST",
                 body: { email },
             }),
         }),
 
-        // Confirm the password reset token
+        // Confirm password reset
         confirmPasswordReset: builder.query({
-            query: ({ uidb64, token }) =>
-                `${AUTH_URL}/password-reset-confirm/${uidb64}/${token}/`,
+            query: ({ uidb64, token }) => ({
+                url: `${AUTH_URL}/password-reset-confirm/${uidb64}/${token}/`,
+            }),
         }),
 
-        // Set a new password after token confirmation
+        // Set a new password
         setNewPassword: builder.mutation({
             query: (data) => ({
                 url: `${AUTH_URL}/set-new-password/`,
-                method: 'PATCH',
+                method: "PATCH",
                 body: data,
             }),
-            async onQueryStarted(arg, { queryFulfilled }) {
-                try {
-                    await queryFulfilled;
-
-                    console.log("Password reset successfully!");
-                } catch (err) {
-                    console.log("Error resetting password:", err);
-                }
-            },
         }),
 
-        // Change the user's password
+        // Change password
         changePassword: builder.mutation({
             query: (data) => ({
                 url: `${AUTH_URL}/change-password/`,
-                method: 'POST',
+                method: "POST",
                 body: data,
             }),
-            async onQueryStarted(arg, { queryFulfilled }) {
-                try {
-                    await queryFulfilled;
+        }),
 
-                    console.log("Password changed successfully!");
-                } catch (err) {
-                    console.log("Error changing password:", err);
+        // Refresh token
+        refreshToken: builder.mutation({
+            query: (data) => ({
+                url: `${AUTH_URL}/token/refresh/`,
+                method: "POST",
+                body: data,
+            }),
+            async onQueryStarted(_, { queryFulfilled }) {
+                try {
+                    const { data } = await queryFulfilled;
+                    const { access } = data;
+                    const authToken = JSON.parse(localStorage.getItem("authToken"));
+                    authToken.access_token = access;
+                    localStorage.setItem("authToken", JSON.stringify(authToken));
+                } catch (error) {
+                    console.error("Token refresh failed:", error);
                 }
             },
         }),
     }),
 });
 
-// Export hooks for using the API endpoints in components
 export const {
     useCurrentUserQuery,
     useRegisterMutation,
@@ -179,4 +144,5 @@ export const {
     useConfirmPasswordResetQuery,
     useSetNewPasswordMutation,
     useChangePasswordMutation,
+    useRefreshTokenMutation,
 } = authApi;
