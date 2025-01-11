@@ -1,6 +1,3 @@
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
 from django.shortcuts import get_object_or_404
 from .models import Report, CollectedWaste
 from user.models import Reward
@@ -8,9 +5,17 @@ from transaction.models import Transaction
 from notification.models import Notification
 from django.db import transaction
 from .serializers import ReportSerializer, CollectedWasteSerializer
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.exceptions import PermissionDenied
 
 
 class CreateReportAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    
     def post(self, request):
         serializer = ReportSerializer(data=request.data)
         if serializer.is_valid():
@@ -19,7 +24,7 @@ class CreateReportAPIView(APIView):
                 report = serializer.save()
 
                 # Update or create a reward record
-                reward, created = Reward.objects.get_or_create(
+                reward = Reward.objects.get_or_create(
                     user=report.user)
                 reward.points += 10
                 reward.save()
@@ -44,8 +49,11 @@ class CreateReportAPIView(APIView):
 
 
 class GetReportsByUserAPIView(APIView):
-    def get(self, request, user_id):
-        reports = Report.objects.filter(user_id=user_id)
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        user = request.user
+        reports = Report.objects.filter(user=user)
         serializer = ReportSerializer(reports, many=True)
         return Response(serializer.data)
 
@@ -60,9 +68,13 @@ class CreateCollectedWasteAPIView(APIView):
 
 
 class GetCollectedWastesByCollectorAPIView(APIView):
-    def get(self, request, collector_id):
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        user = request.user
+        
         collected_wastes = CollectedWaste.objects.filter(
-            collector_id=collector_id)
+            collector=user)
         serializer = CollectedWasteSerializer(collected_wastes, many=True)
         return Response(serializer.data)
 

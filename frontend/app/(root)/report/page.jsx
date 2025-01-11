@@ -5,10 +5,10 @@ import { MapPin, Upload, CheckCircle, Loader } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { StandaloneSearchBox, useJsApiLoader } from '@react-google-maps/api';
-import { Libraries } from '@react-google-maps/api';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
 import { useCurrentUserQuery } from "../../../redux/features/auth/authApi";
+import { useGetRecentReportsQuery } from '@/redux/features/waste/wasteApi';
 
 const geminiApiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
 const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
@@ -22,14 +22,18 @@ const ReportPage = () => {
     const [reports, setReports] = useState([]);
     const [newReport, setNewReport] = useState({
         location: '',
-        type: '',
+        waste_type: '',
         amount: '',
     });
 
     const [file, setFile] = useState(null);
     const [preview, setPreview] = useState(null);
     const [verificationStatus, setVerificationStatus] = useState('idle');
-    const [verificationResult, setVerificationResult] = useState(null);
+    const [verificationResult, setVerificationResult] = useState({
+        waste_type: '',
+        quantity: '',
+        confidence: '',
+    });
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const [searchBox, setSearchBox] = useState(null);
@@ -104,16 +108,16 @@ const ReportPage = () => {
             ];
 
             const prompt = `You are an expert in waste management and recycling. Analyze this image and provide:
-        1. The type of waste (e.g., plastic, paper, glass, metal, organic)
-        2. An estimate of the quantity or amount (in kg or liters)
-        3. Your confidence level in this assessment (as a percentage)
-        
-        Respond in JSON format like this:
-        {
-          "wasteType": "type of waste",
-          "quantity": "estimated quantity with unit",
-          "confidence": confidence level as a number between 0 and 1
-        }`;
+            1. The type of waste (e.g., plastic, paper, glass, metal, organic)
+            2. An estimate of the quantity or amount (in kg or liters)
+            3. Your confidence level in this assessment (as a percentage)
+            
+            Respond in JSON format like this:
+            {
+                "wasteType": "type of waste",
+                "quantity": "estimated quantity with unit",
+                "confidence": confidence level as a number between 0 and 1
+            }`;
 
             const result = await model.generateContent([prompt, ...imageParts]);
             const response = await result.response;
@@ -155,7 +159,7 @@ const ReportPage = () => {
             const report = await createReport(
                 user.id,
                 newReport.location,
-                newReport.type,
+                newReport.waste_type,
                 newReport.amount,
                 preview || undefined,
                 verificationResult ? JSON.stringify(verificationResult) : undefined
@@ -164,7 +168,7 @@ const ReportPage = () => {
             const formattedReport = {
                 id: report.id,
                 location: report.location,
-                wasteType: report.wasteType,
+                wasteType: report.waste_type,
                 amount: report.amount,
                 createdAt: new Date(report.createdAt).toISOString().split('T')[0],
             };
@@ -189,7 +193,7 @@ const ReportPage = () => {
         const checkUser = async () => {
             const userInfo = useCurrentUserQuery();
             if (userInfo) {
-                const recentReports = await getRecentReports();
+                const recentReports = useGetRecentReportsQuery();
                 const formattedReports = recentReports.map((report) => ({
                     ...report,
                     createdAt: new Date(report.createdAt).toISOString().split('T')[0],
@@ -257,7 +261,7 @@ const ReportPage = () => {
                           <div>
                               <h3 className="text-lg font-medium text-green-800">Verification Successful</h3>
                               <div className="mt-2 text-sm text-green-700">
-                                  <p>Waste Type: {verificationResult.wasteType}</p>
+                                  <p>Waste Type: {verificationResult.waste_type}</p>
                                   <p>Quantity: {verificationResult.quantity}</p>
                                   <p>Confidence: {(verificationResult.confidence * 100).toFixed(2)}%</p>
                               </div>
@@ -304,7 +308,7 @@ const ReportPage = () => {
                           type="text"
                           id="type"
                           name="type"
-                          value={newReport.type}
+                          value={newReport.waste_type}
                           onChange={handleInputChange}
                           required
                           className="w-full px-4 py-2 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 transition-all duration-300 bg-gray-100"
@@ -360,7 +364,7 @@ const ReportPage = () => {
                                       <MapPin className="inline-block w-4 h-4 mr-2 text-green-500" />
                                       {report.location}
                                   </td>
-                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{report.wasteType}</td>
+                                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{report.waste_type}</td>
                                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{report.amount}</td>
                                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{report.createdAt}</td>
                               </tr>

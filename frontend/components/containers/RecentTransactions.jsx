@@ -1,7 +1,5 @@
 'use client';
-
 import { ArrowUpRight, ArrowDownRight } from 'lucide-react';
-
 
 const RecentTransactions = ({ transaction }) => {
   return (

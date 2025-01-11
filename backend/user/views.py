@@ -1,18 +1,24 @@
 from django.utils.timezone import now
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
 from django.shortcuts import get_object_or_404
 from django.db import transaction
 from transaction.models import Transaction
 from .models import Reward
 from .serializers import RewardSerializer
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.exceptions import PermissionDenied
 
 
 class GetOrCreateRewardView(APIView):
-    def post(self, request, user_id):
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request):
+        user = request.user
+        
         reward, created = Reward.objects.get_or_create(
-            user_id=user_id,
+            user=user,
             defaults={
                 'name': 'Default Reward',
                 'collection_info': 'Default Collection Info',
@@ -26,9 +32,13 @@ class GetOrCreateRewardView(APIView):
 
 
 class UpdateRewardPointsView(APIView):
-    def patch(self, request, user_id):
+    permission_classes = [IsAuthenticated]
+    
+    def patch(self, request):
+        user = request.user
+        
         points_to_add = request.data.get('points_to_add', 0)
-        reward = get_object_or_404(Reward, user_id=user_id)
+        reward = get_object_or_404(Reward, user=user)
         reward.points += points_to_add
         reward.updated_at = now()
         reward.save()

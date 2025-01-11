@@ -2,40 +2,14 @@
 import { useState, useEffect } from 'react';
 import { Loader, Award, User, Trophy, Crown } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { useCurrentUserQuery } from "../../../redux/features/auth/authApi";
+import { useGetAllRewardsQuery } from '@/redux/features/user/userApi';
 
 export default function LeaderboardPage() {
-    const [rewards, setRewards] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [user, setUser] = useState(null);
 
-    useEffect(() => {
-        const fetchRewardsAndUser = async () => {
-            setLoading(true);
-            try {
-                const fetchedRewards = await getAllRewards();
-                setRewards(fetchedRewards);
-
-                const userEmail = localStorage.getItem('userEmail');
-                if (userEmail) {
-                    const fetchedUser = await getUserByEmail(userEmail);
-                    if (fetchedUser) {
-                        setUser(fetchedUser);
-                    } else {
-                        toast.error('User not found. Please log in again.');
-                    }
-                } else {
-                    toast.error('User not logged in. Please log in.');
-                }
-            } catch (error) {
-                console.error('Error fetching rewards and user:', error);
-                toast.error('Failed to load leaderboard. Please try again.');
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchRewardsAndUser();
-    }, []);
+    const [loading, setLoading] = useState(false);
+    const { data: userInfo } = useCurrentUserQuery();
+    const { data: rewards } = useGetAllRewardsQuery();
 
     return (
         <div className="">
@@ -66,10 +40,10 @@ export default function LeaderboardPage() {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {rewards.map((reward, index) => (
+                                    {rewards?.map((reward, index) => (
                                         <tr
                                             key={reward.id}
-                                            className={`${user && user.id === reward.userId ? 'bg-indigo-50' : ''
+                                            className={`${userInfo && userInfo.id === reward.userId ? 'bg-indigo-50' : ''
                                                 } hover:bg-gray-50 transition-colors duration-150 ease-in-out`}
                                         >
                                             <td className="px-6 py-4 whitespace-nowrap">

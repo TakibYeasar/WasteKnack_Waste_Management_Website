@@ -1,5 +1,5 @@
 'use client';
-
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Menu, Coins, Leaf, Search, Bell, User, ChevronDown, LogIn, LogOut } from "lucide-react";
@@ -8,12 +8,31 @@ import { useRouter } from 'next/navigation';
 import { useMediaQuery } from "../hooks/useMediaQuery";
 import toast from 'react-hot-toast';
 import { useCurrentUserQuery, useLogoutMutation } from "../redux/features/auth/authApi";
+import { useGetUnreadNotificationsQuery, useMarkNotificationAsReadMutation } from "@/redux/features/notification/notificationApi";
+import { useGetUserBalanceQuery } from "@/redux/features/transaction/transactionApi";
 
 const Header = ({ onMenuClick, totalEarnings }) => {
+
   const router = useRouter();
   const isMobile = useMediaQuery("(max-width: 768px)");
+
+
+  // Redux queries and mutations
   const { data: userInfo } = useCurrentUserQuery();
-  const [logoutApiCall] = useLogoutMutation(); // Use the mutation hook here
+  const [logoutApiCall] = useLogoutMutation();
+  const { data: notifications = [] } = useGetUnreadNotificationsQuery();
+  const [markNotificationAsRead] = useMarkNotificationAsReadMutation();
+  const { data: balance = 0 } = useGetUserBalanceQuery();
+
+  const handleNotificationClick = async (notificationId) => {
+    try {
+      await markNotificationAsRead(notificationId).unwrap();
+      toast.success("Notification marked as read.");
+    } catch (error) {
+      console.error("Error marking notification as read:", error);
+      toast.error("Failed to mark notification as read.");
+    }
+  };
 
   const handleLogout = async () => {
     try {
@@ -75,17 +94,36 @@ const Header = ({ onMenuClick, totalEarnings }) => {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="icon" className="mr-2 relative">
                 <Bell className="h-5 w-5" />
+                {notifications.length > 0 && (
+                  <Badge className="absolute -top-1 -right-1 px-1 min-w-[1.2rem] h-5">
+                    {notifications.length}
+                  </Badge>
+                )}
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-64">
-              {/* Notification items go here */}
+              {notifications.length > 0 ? (
+                notifications.map((notification) => (
+                  <DropdownMenuItem
+                    key={notification.id}
+                    onClick={() => handleNotificationClick(notification.id)}
+                  >
+                    <div className="flex flex-col">
+                      <span className="font-medium">{notification.type}</span>
+                      <span className="text-sm text-gray-500">{notification.message}</span>
+                    </div>
+                  </DropdownMenuItem>
+                ))
+              ) : (
+                <DropdownMenuItem>No new notifications</DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
 
           {/* Total Earnings */}
           <div className="mr-2 md:mr-4 flex items-center bg-gray-100 rounded-full px-2 md:px-3 py-1">
             <Coins className="h-4 w-4 md:h-5 md:w-5 mr-1 text-green-500" />
-            <span className="font-semibold text-sm md:text-base text-gray-800">{totalEarnings}</span>
+            <span className="font-semibold text-sm md:text-base text-gray-800">{balance.toFixed(2)}</span>
           </div>
 
           {/* Authentication State: Sign In/Sign Up or User Profile */}
@@ -98,6 +136,9 @@ const Header = ({ onMenuClick, totalEarnings }) => {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
+                <DropdownMenuItem>
+                  {userInfo ? userInfo.name : "Fetch User Info"}
+                </DropdownMenuItem>
                 <DropdownMenuItem>
                   <Link href="/profile">Profile</Link>
                 </DropdownMenuItem>

@@ -1,73 +1,55 @@
-'use client'
+'use client';
 
-import { useState, useEffect } from 'react';
-import { Trash2, MapPin, CheckCircle, Clock, ArrowRight, Camera, Upload, Loader, Calendar, Weight, Search } from 'lucide-react';
+import { useState } from 'react';
+import { Trash2, MapPin, Upload, Loader, Calendar, Weight, Search } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'react-hot-toast';
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { useCurrentUserQuery } from "../../../redux/features/auth/authApi";
+import { useGetWasteCollectionTasksQuery, useUpdateTaskStatusMutation, useSaveCollectedWasteMutation } from '@/redux/features/waste/wasteApi';
+import { useSaveRewardMutation } from '@/redux/features/user/userApi';
 
 const geminiApiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY
 const ITEMS_PER_PAGE = 5
 
 const CollectPage = () => {
 
-    const [tasks, setTasks] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const { data: userInfo } = useCurrentUserQuery();
+    const { data: tasks } = useGetWasteCollectionTasksQuery();
+
+    const [loading, setLoading] = useState(false);
     const [hoveredWasteType, setHoveredWasteType] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
-    const [user, setUser] = useCurrentUserQuery();
-
     const [selectedTask, setSelectedTask] = useState(null);
     const [verificationImage, setVerificationImage] = useState(null);
     const [verificationStatus, setVerificationStatus] = useState('idle');
     const [verificationResult, setVerificationResult] = useState(null);
     const [reward, setReward] = useState(null);
 
-    useEffect(() => {
-        const fetchUserAndTasks = async () => {
-            setLoading(true);
-            try {
-                const userEmail = localStorage.getItem('userEmail');
-                if (userEmail) {
-                    const fetchedUser = await getUserByEmail(userEmail);
-                    if (fetchedUser) {
-                        setUser(fetchedUser);
-                    } else {
-                        toast.error('User not found. Please log in again.');
-                    }
-                } else {
-                    toast.error('User not logged in. Please log in.');
-                }
-
-                const fetchedTasks = await getWasteCollectionTasks();
-                setTasks(fetchedTasks);
-            } catch (error) {
-                console.error('Error fetching user and tasks:', error);
-                toast.error('Failed to load user data and tasks. Please try again.');
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchUserAndTasks();
-    }, []);
+    const handleImageUpload = (e) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => setVerificationImage(reader.result);
+            reader.readAsDataURL(file);
+        }
+    };
 
     const handleStatusChange = async (taskId, newStatus) => {
-        if (!user) {
+        if (!userInfo) {
             toast.error('Please log in to collect waste.');
             return;
         }
 
         try {
-            const updatedTask = await updateTaskStatus(taskId, newStatus, user.id);
+            const updatedTask = await useUpdateTaskStatusMutation({
+                taskId,
+                newStatus,
+            });
             if (updatedTask) {
-                setTasks(tasks.map(task =>
-                    task.id === taskId ? { ...task, status: newStatus, collectorId: user.id } : task
-                ));
-                toast.success('Task status updated successfully');
+                toast.success('Task status updated successfully.');
             } else {
                 toast.error('Failed to update task status. Please try again.');
             }
@@ -77,23 +59,12 @@ const CollectPage = () => {
         }
     };
 
-    const handleImageUpload = (e) => {
-        const file = e.target.files?.[0];
-        if (file) {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setVerificationImage(reader.result);
-            };
-            reader.readAsDataURL(file);
-        }
-    };
-
     const readFileAsBase64 = (dataUrl) => {
         return dataUrl.split(',')[1];
     };
 
     const handleVerify = async () => {
-        if (!selectedTask || !verificationImage || !user) {
+        if (!selectedTask || !verificationImage || !userInfo) {
             toast.error('Missing required information for verification.');
             return;
         }
@@ -104,61 +75,63 @@ const CollectPage = () => {
             const genAI = new GoogleGenerativeAI(geminiApiKey);
             const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
-            const base64Data = readFileAsBase64(verificationImage);
-
+            const base64Data = verificationImage.split(',')[1];
             const imageParts = [
                 {
-                    inlineData: {
-                        data: base64Data,
-                        mimeType: 'image/jpeg',
-                    },
+                    inlineData: { data: base64Data, mimeType: 'image/jpeg' },
                 },
             ];
 
             const prompt = `You are an expert in waste management and recycling. Analyze this image and provide:
-        1. Confirm if the waste type matches: ${selectedTask.wasteType}
-        2. Estimate if the quantity matches: ${selectedTask.amount}
-        3. Your confidence level in this assessment (as a percentage)
+                1. Confirm if the waste type matches: ${selectedTask.wasteType}
+                2. Estimate if the quantity matches: ${selectedTask.amount}
+                3. Your confidence level in this assessment (as a percentage)
 
-        Respond in JSON format like this:
-        {
-          "wasteTypeMatch": true/false,
-          "quantityMatch": true/false,
-          "confidence": confidence level as a number between 0 and 1
-        }`;
+                Respond in JSON format like this:
+                {
+                "wasteTypeMatch": true/false,
+                "quantityMatch": true/false,
+                "confidence": confidence level as a number between 0 and 1
+            }`;
 
             const result = await model.generateContent([prompt, ...imageParts]);
-            const response = await result.response;
-            const text = response.text();
+            const parsedResult = JSON.parse(result.response.text());
+            setVerificationResult(parsedResult);
+            setVerificationStatus('success');
 
-            try {
-                const parsedResult = JSON.parse(text);
-                setVerificationResult(parsedResult);
-                setVerificationStatus('success');
-
-                if (parsedResult.wasteTypeMatch && parsedResult.quantityMatch && parsedResult.confidence > 0.7) {
-                    await handleStatusChange(selectedTask.id, 'verified');
-                    const earnedReward = Math.floor(Math.random() * 50) + 10;
-                    await saveReward(user.id, earnedReward);
-                    await saveCollectedWaste(selectedTask.id, user.id, parsedResult);
-                    setReward(earnedReward);
-                    toast.success(`Verification successful! You earned ${earnedReward} tokens!`);
-                } else {
-                    toast.error('Verification failed. The collected waste does not match the reported waste.');
-                }
-            } catch (error) {
-                console.error('Failed to parse JSON response:', text);
-                setVerificationStatus('failure');
+            if (
+                parsedResult.wasteTypeMatch &&
+                parsedResult.quantityMatch &&
+                parsedResult.confidence > 0.7
+            ) {
+                await handleStatusChange(selectedTask.id, 'verified');
+                const earnedReward = Math.floor(Math.random() * 50) + 10;
+                await useSaveRewardMutation({
+                    userId: userInfo.id,
+                    reward: earnedReward,
+                });
+                await useSaveCollectedWasteMutation({
+                    taskId: selectedTask.id,
+                    userId: userInfo.id,
+                    data: parsedResult,
+                });
+                setReward(earnedReward);
+                toast.success(`Verification successful! You earned ${earnedReward} tokens.`);
+            } else {
+                toast.error('Verification failed. Waste does not match.');
             }
         } catch (error) {
-            console.error('Error verifying waste:', error);
+            console.error('Verification error:', error);
             setVerificationStatus('failure');
         }
     };
 
-    const filteredTasks = tasks.filter(task =>
-        task.location.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredTasks = tasks
+        ? tasks.filter((task) =>
+            task.location.toLowerCase().includes(searchTerm.toLowerCase())
+        )
+        : [];
+
 
     const pageCount = Math.ceil(filteredTasks.length / ITEMS_PER_PAGE);
     const paginatedTasks = filteredTasks.slice(
@@ -325,7 +298,7 @@ const CollectPage = () => {
                 </div>
             )}
 
-            {user ? (
+            {userInfo ? (
                 <p className="text-sm text-gray-600 mb-4">Logged in as: {user.name}</p>
             ) : (
                 <p className="text-sm text-red-600 mb-4">Please log in to collect waste and earn rewards.</p>

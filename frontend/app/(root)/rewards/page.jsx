@@ -5,113 +5,40 @@ import { Coins, AlertCircle, Loader } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import RecentTransactions from '@/components/containers/RecentTransactions';
 import AvailableRewards from '@/components/containers/AvailableRewards';
+import { useCurrentUserQuery } from "../../../redux/features/auth/authApi";
+import { useGetRewardTransactionsQuery } from '@/redux/features/transaction/transactionApi';
+import { useGetAvailableRewardsQuery } from '@/redux/features/user/userApi';
 
 export default function RewardsPage() {
-    const [user, setUser] = useState(null);
+
+    const [loading, setLoading] = useState(false);
     const [balance, setBalance] = useState(0);
-    const [transactions, setTransactions] = useState([]);
-    const [rewards, setRewards] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const { data: userInfo } = useCurrentUserQuery();
+    const { data: rewards } = useGetAvailableRewardsQuery();
+    const { data: transactions } = useGetRewardTransactionsQuery();
 
     useEffect(() => {
-        const fetchUserDataAndRewards = async () => {
+        const fetchUserBalance = async () => {
             setLoading(true);
             try {
-                const userEmail = localStorage.getItem('userEmail');
-                if (userEmail) {
-                    const fetchedUser = await getUserByEmail(userEmail);
-                    if (fetchedUser) {
-                        setUser(fetchedUser);
-
-                        const fetchedTransactions = await getRewardTransactions(fetchedUser.id);
-                        setTransactions(fetchedTransactions);
-
-                        const fetchedRewards = await getAvailableRewards(fetchedUser.id);
-                        setRewards(fetchedRewards.filter((reward) => reward.cost > 0));
-
-                        const calculatedBalance = fetchedTransactions.reduce((acc, transaction) => {
-                            return transaction.type.startsWith('earned') ? acc + transaction.amount : acc - transaction.amount;
-                        }, 0);
-                        setBalance(Math.max(calculatedBalance, 0));
-                    } else {
-                        toast.error('User not found. Please log in again.');
-                    }
+                if (userInfo) {
+                    const calculatedBalance = transactions.reduce((acc, transaction) => {
+                        return transaction.type.startsWith('earned') ? acc + transaction.amount : acc - transaction.amount;
+                    }, 0);
+                    setBalance(Math.max(calculatedBalance, 0));
                 } else {
-                    toast.error('User not logged in. Please log in.');
+                    toast.error('User not found. Please log in again.');
                 }
             } catch (error) {
-                console.error('Error fetching user data and rewards:', error);
-                toast.error('Failed to load rewards data. Please try again.');
+                console.error('Error fetching user balance:', error);
+                toast.error('Failed to load user balance. Please try again.');
             } finally {
                 setLoading(false);
             }
         };
 
-        fetchUserDataAndRewards();
+        fetchUserBalance();
     }, []);
-
-    const handleRedeemReward = async (rewardId) => {
-        if (!user) {
-            toast.error('Please log in to redeem rewards.');
-            return;
-        }
-
-        const reward = rewards.find((r) => r.id === rewardId);
-        if (reward && balance >= reward.cost) {
-            try {
-                await redeemReward(user.id, rewardId);
-                await createTransaction(user.id, 'redeemed', reward.cost, `Redeemed ${reward.name}`);
-                await refreshUserData();
-
-                toast.success(`You have successfully redeemed: ${reward.name}`);
-            } catch (error) {
-                console.error('Error redeeming reward:', error);
-                toast.error('Failed to redeem reward. Please try again.');
-            }
-        } else {
-            toast.error('Insufficient balance or invalid reward.');
-        }
-    };
-
-    const handleRedeemAllPoints = async () => {
-        if (!user) {
-            toast.error('Please log in to redeem points.');
-            return;
-        }
-
-        if (balance > 0) {
-            try {
-                await redeemReward(user.id, 0);
-                await createTransaction(user.id, 'redeemed', balance, 'Redeemed all points');
-                await refreshUserData();
-
-                toast.success('You have successfully redeemed all your points!');
-            } catch (error) {
-                console.error('Error redeeming all points:', error);
-                toast.error('Failed to redeem all points. Please try again.');
-            }
-        } else {
-            toast.error('No points available to redeem.');
-        }
-    };
-
-    const refreshUserData = async () => {
-        if (user) {
-            const fetchedUser = await getUserByEmail(user.email);
-            if (fetchedUser) {
-                const fetchedTransactions = await getRewardTransactions(fetchedUser.id);
-                setTransactions(fetchedTransactions);
-
-                const fetchedRewards = await getAvailableRewards(fetchedUser.id);
-                setRewards(fetchedRewards.filter((reward) => reward.cost > 0));
-
-                const calculatedBalance = fetchedTransactions.reduce((acc, transaction) => {
-                    return transaction.type.startsWith('earned') ? acc + transaction.amount : acc - transaction.amount;
-                }, 0);
-                setBalance(Math.max(calculatedBalance, 0));
-            }
-        }
-    };
 
     if (loading) {
         return (
@@ -142,7 +69,7 @@ export default function RewardsPage() {
                 <div>
                     <h2 className="text-2xl font-semibold mb-4 text-gray-800">Recent Transactions</h2>
                     <div className="bg-white rounded-xl shadow-md overflow-hidden">
-                        {transactions.length > 0 ? (
+                        {transactions?.length > 0 ? (
                             transactions.map((transaction) => (
                                 <RecentTransactions transaction={transaction} />
                             ))
@@ -155,9 +82,9 @@ export default function RewardsPage() {
                 <div>
                     <h2 className="text-2xl font-semibold mb-4 text-gray-800">Available Rewards</h2>
                     <div className="space-y-4">
-                        {rewards.length > 0 ? (
+                        {rewards?.length > 0 ? (
                             rewards.map((reward) => (
-                                <AvailableRewards reward={reward} />
+                                <AvailableRewards reward={reward} balance={balance} />
                             ))
                         ) : (
                             <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-md">
