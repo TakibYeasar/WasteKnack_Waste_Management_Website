@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'react-hot-toast';
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { useCurrentUserQuery } from "../../../redux/features/auth/authApi";
+import { useCurrentUserQuery } from "../../../../redux/features/auth/authApi";
 import { useGetWasteCollectionTasksQuery, useUpdateTaskStatusMutation, useSaveCollectedWasteMutation } from '@/redux/features/waste/wasteApi';
 import { useSaveRewardMutation } from '@/redux/features/user/userApi';
 

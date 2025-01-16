@@ -7,7 +7,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { StandaloneSearchBox, useJsApiLoader } from '@react-google-maps/api';
 import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
-import { useCurrentUserQuery } from "../../../redux/features/auth/authApi";
+import { useCurrentUserQuery } from "../../../../redux/features/auth/authApi";
 import { useGetRecentReportsQuery } from '@/redux/features/waste/wasteApi';
 
 const geminiApiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
