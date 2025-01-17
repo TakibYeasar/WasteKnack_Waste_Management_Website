@@ -2,7 +2,6 @@
 
 import React, { useState } from "react";
 import ProfileManagement from "./components/ProfileManagement";
-import AssignedPickups from "./components/AssignedPickups";
 import PickupManagement from "./components/PickupManagement";
 import NavigationAssistance from "./components/NavigationAssistance";
 import PerformanceAnalytics from "./components/PerformanceAnalytics";
@@ -12,7 +11,6 @@ const CollectorDashboard = () => {
 
     const sections = [
         { key: "profile", label: "Profile Management", component: <ProfileManagement /> },
-        { key: "assigned", label: "Assigned Pickups", component: <AssignedPickups /> },
         { key: "management", label: "Pickup Management", component: <PickupManagement /> },
         { key: "navigation", label: "Navigation Assistance", component: <NavigationAssistance /> },
         { key: "analytics", label: "Performance Analytics", component: <PerformanceAnalytics /> },

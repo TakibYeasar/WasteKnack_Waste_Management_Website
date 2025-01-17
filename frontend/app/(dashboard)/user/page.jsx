@@ -2,7 +2,6 @@
 
 import React, { useState } from "react";
 import ProfileManagement from "./components/ProfileManagement";
-import RequestPickup from "./components/RequestPickup";
 import PickupStatusTracking from "./components/PickupStatusTracking";
 import PaymentHistory from "./components/PaymentHistory";
 import FeedbackAndRatings from "./components/FeedbackAndRatings";
@@ -12,7 +11,6 @@ const UserDashboard = () => {
 
     const sections = [
         { key: "profile", label: "Profile Management", component: <ProfileManagement /> },
-        { key: "request", label: "Request Pickup", component: <RequestPickup /> },
         { key: "tracking", label: "Pickup Status Tracking", component: <PickupStatusTracking /> },
         { key: "payment", label: "Payment History", component: <PaymentHistory /> },
         { key: "feedback", label: "Feedback & Ratings", component: <FeedbackAndRatings /> },
