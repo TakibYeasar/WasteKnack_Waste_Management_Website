@@ -2,8 +2,8 @@
 import { useState, useEffect } from 'react';
 import { Loader, Award, User, Trophy, Crown } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import { useCurrentUserQuery } from "../../../redux/features/auth/authApi";
-import { useGetAllRewardsQuery } from '@/redux/features/user/userApi';
+import { useCurrentUserQuery } from "../../../store/features/auth/authApi";
+import { useGetAllRewardsQuery } from '@/store/features/user/userApi';
 
 export default function LeaderboardPage() {
 

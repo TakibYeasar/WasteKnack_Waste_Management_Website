@@ -3,9 +3,9 @@
 import { Gift } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'react-hot-toast';
-import { useCurrentUserQuery } from '../../redux/features/auth/authApi';
-import { useCreateTransactionMutation } from '../../redux/features/transaction/transactionApi';
-import { useGetAvailableRewardsQuery, useRedeemRewardMutation } from '../../redux/features/user/userApi';
+import { useCurrentUserQuery } from '../../store/features/auth/authApi';
+import { useCreateTransactionMutation } from '../../store/features/transaction/transactionApi';
+import { useGetAvailableRewardsQuery, useRedeemRewardMutation } from '../../store/features/user/userApi';
 
 const AvailableRewards = ({ reward, balance }) => {
     const { data: userInfo } = useCurrentUserQuery();

@@ -1,17 +1,17 @@
 "use client";
 
 import React, { useState } from "react";
-import ProfileManagement from "./components/ProfileManagement";
-import PickupManagement from "./components/PickupManagement";
-import NavigationAssistance from "./components/NavigationAssistance";
-import PerformanceAnalytics from "./components/PerformanceAnalytics";
+import ProfileManagement from "./_components/ProfileManagement";
+import PickupManagement from "./_components/PickupManagement";
+import NavigationAssistance from "./_components/NavigationAssistance";
+import PerformanceAnalytics from "./_components/PerformanceAnalytics";
 
 const CollectorDashboard = () => {
-    const [activeSection, setActiveSection] = useState("profile");
+    const [activeSection, setActiveSection] = useState("dasbboard");
 
     const sections = [
+        { key: "dasbboard", label: "Dashboard", component: <PickupManagement /> },
         { key: "profile", label: "Profile Management", component: <ProfileManagement /> },
-        { key: "management", label: "Pickup Management", component: <PickupManagement /> },
         { key: "navigation", label: "Navigation Assistance", component: <NavigationAssistance /> },
         { key: "analytics", label: "Performance Analytics", component: <PerformanceAnalytics /> },
     ];

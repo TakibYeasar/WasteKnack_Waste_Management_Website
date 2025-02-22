@@ -1,28 +1,55 @@
 'use client';
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Menu, Coins, Leaf, Search, Bell, User, ChevronDown, LogIn, LogOut } from "lucide-react";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { useRouter } from 'next/navigation';
-import { useMediaQuery } from "../hooks/useMediaQuery";
 import toast from 'react-hot-toast';
-import { useCurrentUserQuery, useLogoutMutation } from "../redux/features/auth/authApi";
-import { useGetUnreadNotificationsQuery, useMarkNotificationAsReadMutation } from "@/redux/features/notification/notificationApi";
-import { useGetUserBalanceQuery } from "@/redux/features/transaction/transactionApi";
+import { useMediaQuery } from "../hooks/useMediaQuery";
+import { useCurrentUserQuery } from "../store/features/auth/authApi";
+import { resetAuthState } from "@/store/features/auth/authSlice";
+import { useGetUnreadNotificationsQuery, useMarkNotificationAsReadMutation } from "@/store/features/notification/notificationApi";
+import { useGetUserBalanceQuery } from "@/store/features/transaction/transactionApi";
+import { useDispatch } from "react-redux";
+import {
+  Menu, Coins, Leaf, Search, Bell, User, ChevronDown, LogIn, LogOut
+} from "lucide-react";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
-const Header = ({ onMenuClick, totalEarnings }) => {
-
+const Header = ({ onMenuClick }) => {
   const router = useRouter();
+  const dispatch = useDispatch();
   const isMobile = useMediaQuery("(max-width: 768px)");
-
 
   // Redux queries and mutations
   const { data: userInfo } = useCurrentUserQuery();
-  const [logoutApiCall] = useLogoutMutation();
   const { data: notifications = [] } = useGetUnreadNotificationsQuery();
   const [markNotificationAsRead] = useMarkNotificationAsReadMutation();
   const { data: balance = 0 } = useGetUserBalanceQuery();
+
+  useEffect(() => {
+    const tokenTimestamp = localStorage.getItem('loginTimestamp');
+    if (tokenTimestamp) {
+      const timeElapsed = Date.now() - Number(tokenTimestamp);
+      if (timeElapsed >= 3600000) {
+        handleLogout();
+      } else {
+        setTimeout(handleLogout, 3600000 - timeElapsed);
+      }
+    }
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('user');
+    localStorage.removeItem('loginTimestamp');
+    sessionStorage.clear();
+    dispatch(resetAuthState());
+    toast.success('Logged out successfully');
+    router.push('/sign-in');
+  };
 
   const handleNotificationClick = async (notificationId) => {
     try {
@@ -34,21 +61,13 @@ const Header = ({ onMenuClick, totalEarnings }) => {
     }
   };
 
-  const handleLogout = async () => {
-    try {
-      const response = await logoutApiCall().unwrap();
+  const handleDashboardClick = () => {
+    const dashboardPath =
+      userInfo?.role === "admin" ? "/admin-dashboard" :
+        userInfo?.role === "collector" ? "/collector-dashboard" :
+          userInfo?.role === "user" ? "/user-dashboard" : '/sign-in';
 
-      toast.success(response?.message || "You have logged out successfully!");
-      localStorage.clear();
-      sessionStorage.clear();
-      router.push("/sign-in");
-    } catch (error) {
-      const errorMessage =
-        error?.data?.detail || "Error logging out. Please try again.";
-      toast.error(errorMessage);
-
-      console.error("Logout error:", error);
-    }
+    router.push(dashboardPath);
   };
 
   return (
@@ -136,14 +155,12 @@ const Header = ({ onMenuClick, totalEarnings }) => {
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem>
-                  {userInfo ? userInfo.name : "Fetch User Info"}
-                </DropdownMenuItem>
+                <DropdownMenuItem>{userInfo?.username || "User"}</DropdownMenuItem>
                 <DropdownMenuItem>
                   <Link href="/profile">Profile</Link>
                 </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Link href="/settings">Settings</Link>
+                <DropdownMenuItem onClick={handleDashboardClick}>
+                  Dashboard
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={handleLogout}>
                   Sign Out

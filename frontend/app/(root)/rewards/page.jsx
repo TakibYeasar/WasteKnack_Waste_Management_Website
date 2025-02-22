@@ -5,9 +5,9 @@ import { Coins, AlertCircle, Loader } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import RecentTransactions from '@/components/containers/RecentTransactions';
 import AvailableRewards from '@/components/containers/AvailableRewards';
-import { useCurrentUserQuery } from "../../../redux/features/auth/authApi";
-import { useGetRewardTransactionsQuery } from '@/redux/features/transaction/transactionApi';
-import { useGetAvailableRewardsQuery } from '@/redux/features/user/userApi';
+import { useCurrentUserQuery } from "../../../store/features/auth/authApi";
+import { useGetRewardTransactionsQuery } from '@/store/features/transaction/transactionApi';
+import { useGetAvailableRewardsQuery } from '@/store/features/user/userApi';
 
 export default function RewardsPage() {
 

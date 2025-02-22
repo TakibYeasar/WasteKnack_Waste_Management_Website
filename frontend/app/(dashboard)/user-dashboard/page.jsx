@@ -1,17 +1,17 @@
 "use client";
 
 import React, { useState } from "react";
-import ProfileManagement from "./components/ProfileManagement";
-import PickupStatusTracking from "./components/PickupStatusTracking";
-import PaymentHistory from "./components/PaymentHistory";
-import FeedbackAndRatings from "./components/FeedbackAndRatings";
+import ProfileManagement from "./_components/ProfileManagement";
+import PickupStatusTracking from "./_components/PickupStatusTracking";
+import PaymentHistory from "./_components/PaymentHistory";
+import FeedbackAndRatings from "./_components/FeedbackAndRatings";
 
 const UserDashboard = () => {
-    const [activeSection, setActiveSection] = useState("profile");
+    const [activeSection, setActiveSection] = useState("dashboard");
 
     const sections = [
+        { key: "dashboard", label: "Dashboard", component: <PickupStatusTracking /> },
         { key: "profile", label: "Profile Management", component: <ProfileManagement /> },
-        { key: "tracking", label: "Pickup Status Tracking", component: <PickupStatusTracking /> },
         { key: "payment", label: "Payment History", component: <PaymentHistory /> },
         { key: "feedback", label: "Feedback & Ratings", component: <FeedbackAndRatings /> },
     ];

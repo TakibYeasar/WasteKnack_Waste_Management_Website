@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { usePasswordResetRequestMutation } from '../../../redux/features/auth/authSlice';
+import { usePasswordResetRequestMutation } from '../../../store/features/auth/authSlice';
 
 const ForgotPassword = () => {
     const [email, setEmail] = useState('');

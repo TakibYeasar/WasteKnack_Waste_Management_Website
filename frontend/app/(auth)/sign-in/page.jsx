@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useLoginMutation } from '../../../redux/features/auth/authApi';
+import { useLoginMutation } from '../../../store/features/auth/authApi';
 import toast from 'react-hot-toast';
 
 const SignIn = () => {

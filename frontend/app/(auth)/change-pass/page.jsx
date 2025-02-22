@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useChangePasswordMutation } from '../../../redux/features/auth/authSlice';
+import { useChangePasswordMutation } from '../../../store/features/auth/authSlice';
 import { useRouter } from 'next/navigation';
 
 const ChangePassword = () => {

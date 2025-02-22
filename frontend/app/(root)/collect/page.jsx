@@ -6,9 +6,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'react-hot-toast';
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { useCurrentUserQuery } from "../../../../redux/features/auth/authApi";
-import { useGetWasteCollectionTasksQuery, useUpdateTaskStatusMutation, useSaveCollectedWasteMutation } from '@/redux/features/waste/wasteApi';
-import { useSaveRewardMutation } from '@/redux/features/user/userApi';
+import { useCurrentUserQuery } from "../../../store/features/auth/authApi";
+import { useGetWasteCollectionTasksQuery, useUpdateTaskStatusMutation, useSaveCollectedWasteMutation } from '@/store/features/waste/wasteApi';
+import { useSaveRewardMutation } from '@/store/features/user/userApi';
 
 const geminiApiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY
 const ITEMS_PER_PAGE = 5

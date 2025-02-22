@@ -30,7 +30,7 @@ export const authApi = apiSlice.injectEndpoints({
             }),
         }),
 
-        // Login
+        // Login user
         login: builder.mutation({
             query: (data) => ({
                 url: `${AUTH_URL}/login/`,
@@ -42,36 +42,32 @@ export const authApi = apiSlice.injectEndpoints({
                     const { data } = await queryFulfilled;
                     const { access_token, refresh_token, email, role } = data;
 
-                    // Dispatch tokens and user details to the store
+                    // Save tokens and user details in Redux store
                     dispatch(setTokens({ accessToken: access_token, refreshToken: refresh_token }));
                     dispatch(setUser({ email, role }));
 
-                    // Save tokens and user info to localStorage
-                    localStorage.setItem(
-                        "authToken",
-                        JSON.stringify({ access_token, refresh_token })
-                    );
+                    // Save tokens and login timestamp to localStorage
+                    localStorage.setItem("authToken", JSON.stringify({ access_token, refresh_token }));
                     localStorage.setItem("user", JSON.stringify({ email, role }));
+                    localStorage.setItem("loginTimestamp", Date.now());
                 } catch (error) {
-                    console.error("Login failed:", error);
+                    console.error("Login error:", error);
                 }
             },
         }),
 
-        // Logout
+        // Logout user
         logout: builder.mutation({
-            query: () => ({
+            query: ({ refreshToken }) => ({
                 url: `${AUTH_URL}/logout/`,
                 method: "POST",
+                body: { refresh_token: refreshToken },
             }),
-            async onQueryStarted(_, { queryFulfilled, dispatch }) {
+            async onQueryStarted(_, { dispatch }) {
                 try {
-                    await queryFulfilled;
-
-                    // Clear state and storage
-                    dispatch(resetAuthState());
+                    // Clear localStorage and reset Redux state
                     localStorage.clear();
-                    sessionStorage.clear();
+                    dispatch(resetAuthState());
                 } catch (error) {
                     console.error("Logout failed:", error);
                 }
@@ -123,9 +119,13 @@ export const authApi = apiSlice.injectEndpoints({
                 try {
                     const { data } = await queryFulfilled;
                     const { access } = data;
+
+                    // Update access token in localStorage
                     const authToken = JSON.parse(localStorage.getItem("authToken"));
-                    authToken.access_token = access;
-                    localStorage.setItem("authToken", JSON.stringify(authToken));
+                    if (authToken) {
+                        authToken.access_token = access;
+                        localStorage.setItem("authToken", JSON.stringify(authToken));
+                    }
                 } catch (error) {
                     console.error("Token refresh failed:", error);
                 }

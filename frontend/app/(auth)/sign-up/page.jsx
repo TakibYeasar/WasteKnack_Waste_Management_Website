@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useRegisterMutation } from '../../../redux/features/auth/authApi';
+import { useRegisterMutation } from '../../../store/features/auth/authApi';
 import { FaFacebook, FaGoogle, FaTwitter } from 'react-icons/fa';
 
 const SignUp = () => {

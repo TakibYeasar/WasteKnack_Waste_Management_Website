@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useSetNewPasswordMutation } from '../../../../redux/features/auth/authSlice';
+import { useSetNewPasswordMutation } from '../../../../store/features/auth/authSlice';
 
 const ResetPassword = () => {
     const router = useRouter();

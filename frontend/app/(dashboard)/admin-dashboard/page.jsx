@@ -1,12 +1,10 @@
 "use client";
 
 import React, { useState } from "react";
-import DashboardOverview from "./components/DashboardOverview";
-import UserManagement from "./components/UserManagement";
-import WastePickupManagement from "./components/WastePickupManagement";
-import AnalyticsReporting from "./components/AnalyticsReporting";
-import ContentManagement from "./components/ContentManagement";
-import SystemSettings from "./components/SystemSettings";
+import DashboardOverview from "./_components/DashboardOverview";
+import UserManagement from "./_components/UserManagement";
+import WastePickupManagement from "./_components/WastePickupManagement";
+import AnalyticsReporting from "./_components/AnalyticsReporting";
 
 const AdminDashboard = () => {
     const [activeSection, setActiveSection] = useState("dashboard");
@@ -14,10 +12,8 @@ const AdminDashboard = () => {
     const sections = [
         { key: "dashboard", label: "Dashboard", component: <DashboardOverview /> },
         { key: "users", label: "User Management", component: <UserManagement /> },
-        { key: "pickups", label: "Waste Pickup Management", component: <WastePickupManagement /> },
+        { key: "pickups", label: "Waste Management", component: <WastePickupManagement /> },
         { key: "analytics", label: "Analytics & Reporting", component: <AnalyticsReporting /> },
-        { key: "content", label: "Content Management", component: <ContentManagement /> },
-        { key: "settings", label: "System Settings", component: <SystemSettings /> },
     ];
 
     const Sidebar = () => (
