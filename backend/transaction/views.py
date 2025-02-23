@@ -1,50 +1,59 @@
-from django.shortcuts import get_object_or_404
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework import status
-from authapi.models import CustomUser
 from .models import Transaction
-from .serializers import TransactionSerializer
-from django.contrib.auth import get_user_model
+from .serializers import *
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.exceptions import PermissionDenied
 
 
 class RewardTransactionsAPIView(APIView):
-    def get(self, request, user_id):
-        """
-        Fetch transactions for a given user, sorted by date and limited to 10.
-        """
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        user = request.user
+        
+        # if user != Transaction.user:
+        #     raise PermissionDenied(
+        #         "You do not have permission to see the transaction.")
+            
         transactions = Transaction.objects.filter(
-            user_id=user_id).order_by('-date')[:10]
+            user=user).order_by('-date')[:10]
         serializer = TransactionSerializer(transactions, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class CreateTransactionAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+    
     def post(self, request):
-        """
-        Create a new transaction for a user.
-        """
+        user = request.user
         data = request.data
-        user = get_object_or_404(CustomUser, id=data.get('user_id'))
         transaction = Transaction.objects.create(
             user=user,
-            type=data['type'],
+            trans_type=data['trans_type'],
             amount=data['amount'],
             description=data['description']
         )
-        serializer = TransactionSerializer(transaction)
+        serializer = TransactionCreateUpdateSerializer(transaction)
         return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
 class UserBalanceAPIView(APIView):
-    def get(self, request, user_id):
-        """
-        Calculate and return the user's current balance.
-        """
-        transactions = Transaction.objects.filter(user_id=user_id)
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        user = request.user
+        
+        if user != Transaction.user:
+            raise PermissionDenied(
+                "You do not have permission to see the ballance.")
+            
+            
+        transactions = Transaction.objects.filter(user=user)
         balance = 0
         for transaction in transactions:
-            if transaction.type.startswith('earned'):
+            if transaction.trans_type.startswith('earned'):
                 balance += transaction.amount
             else:
                 balance -= transaction.amount

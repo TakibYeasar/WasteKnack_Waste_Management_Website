@@ -8,7 +8,6 @@ class Transaction(models.Model):
         ('redeemed', 'Redeemed'),
     ]
 
-    id = models.AutoField(primary_key=True)
     user = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='transactions', on_delete=models.CASCADE)
     trans_type = models.CharField(max_length=20, choices=TYPE_CHOICES)
     amount = models.IntegerField()

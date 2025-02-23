@@ -2,10 +2,10 @@ from django.urls import path
 from .views import *
 
 urlpatterns = [
-    path('transactions/<int:user_id>/',
+    path('transactions/',
          RewardTransactionsAPIView.as_view(), name='reward-transactions'),
-    path('transactions/create/', CreateTransactionAPIView.as_view(),
+    path('create-transactions/', CreateTransactionAPIView.as_view(),
          name='create-transaction'),
-    path('balance/<int:user_id>/',
+    path('balance/',
          UserBalanceAPIView.as_view(), name='user-balance'),
 ]

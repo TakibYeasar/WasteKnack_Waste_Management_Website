@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { MapPin, Trash, Coins, Medal, Settings, Home } from "lucide-react";
+import { MapPin, Trash, Coins, Medal, MessageCircle, Home } from "lucide-react";
 import { useCurrentUserQuery } from "@/store/features/auth/authApi";
 
 const sidebarItems = {
@@ -12,16 +12,19 @@ const sidebarItems = {
     { href: "/report", icon: MapPin, label: "Report Waste" },
     { href: "/rewards", icon: Coins, label: "Rewards" },
     { href: "/leaderboard", icon: Medal, label: "Leaderboard" },
+    { href: "/messages", icon: MessageCircle, label: "Chat AI" },
   ],
   collector: [
     { href: "/", icon: Home, label: "Home" },
     { href: "/collect", icon: Trash, label: "Collect Waste" },
     { href: "/rewards", icon: Coins, label: "Rewards" },
     { href: "/leaderboard", icon: Medal, label: "Leaderboard" },
+    { href: "/messages", icon: MessageCircle, label: "Chat AI" },
   ],
   admin: [
     { href: "/", icon: Home, label: "Home" },
     { href: "/leaderboard", icon: Medal, label: "Leaderboard" },
+    { href: "/messages", icon: Medal, label: "Chat AI" },
   ],
 };
 

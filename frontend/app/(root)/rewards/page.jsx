@@ -17,28 +17,28 @@ export default function RewardsPage() {
     const { data: rewards } = useGetAvailableRewardsQuery();
     const { data: transactions } = useGetRewardTransactionsQuery();
 
-    useEffect(() => {
-        const fetchUserBalance = async () => {
-            setLoading(true);
-            try {
-                if (userInfo) {
-                    const calculatedBalance = transactions.reduce((acc, transaction) => {
-                        return transaction.type.startsWith('earned') ? acc + transaction.amount : acc - transaction.amount;
-                    }, 0);
-                    setBalance(Math.max(calculatedBalance, 0));
-                } else {
-                    toast.error('User not found. Please log in again.');
-                }
-            } catch (error) {
-                console.error('Error fetching user balance:', error);
-                toast.error('Failed to load user balance. Please try again.');
-            } finally {
-                setLoading(false);
-            }
-        };
+    // useEffect(() => {
+    //     const fetchUserBalance = async () => {
+    //         setLoading(true);
+    //         try {
+    //             if (userInfo) {
+    //                 const calculatedBalance = transactions.reduce((acc, transaction) => {
+    //                     return transaction.type.startsWith('earned') ? acc + transaction.amount : acc - transaction.amount;
+    //                 }, 0);
+    //                 setBalance(Math.max(calculatedBalance, 0));
+    //             } else {
+    //                 toast.error('User not found. Please log in again.');
+    //             }
+    //         } catch (error) {
+    //             console.error('Error fetching user balance:', error);
+    //             toast.error('Failed to load user balance. Please try again.');
+    //         } finally {
+    //             setLoading(false);
+    //         }
+    //     };
 
-        fetchUserBalance();
-    }, []);
+    //     fetchUserBalance();
+    // }, []);
 
     if (loading) {
         return (

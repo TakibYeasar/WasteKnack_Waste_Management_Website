@@ -5,19 +5,19 @@ export const wasteApi = apiSlice.injectEndpoints({
     endpoints: (builder) => ({
         // Reports Endpoints
         createReport: builder.mutation({
-            query: (reportData) => ({
-                url: `${WASTE_URL}/reports/create/`,
+            query: (newReport) => ({
+                url: `${WASTE_URL}/create-report/`,
                 method: 'POST',
-                body: reportData,
+                body: newReport,
             }),
         }),
 
         getReportsByUser: builder.query({
-            query: (userId) => `${WASTE_URL}/reports/user/${userId}/`,
+            query: () => `${WASTE_URL}/user-reports/`,
         }),
 
         getPendingReports: builder.query({
-            query: () => `${WASTE_URL}/reports/pending/`,
+            query: () => `${WASTE_URL}/pending-reports/`,
         }),
 
         updateReportStatus: builder.mutation({
@@ -29,7 +29,7 @@ export const wasteApi = apiSlice.injectEndpoints({
         }),
 
         getRecentReports: builder.query({
-            query: () => `${WASTE_URL}/reports/recent/`,
+            query: () => `${WASTE_URL}/recent-reports/`,
         }),
 
         // Collected Waste Endpoints
@@ -42,12 +42,12 @@ export const wasteApi = apiSlice.injectEndpoints({
         }),
 
         getCollectedWastesByCollector: builder.query({
-            query: (collectorId) => `${WASTE_URL}/collected-waste/collector/${collectorId}/`,
+            query: () => `${WASTE_URL}/collector/collected-waste/`,
         }),
 
         saveCollectedWaste: builder.mutation({
             query: (collectedWasteData) => ({
-                url: `${WASTE_URL}/collected-waste/save/`,
+                url: `${WASTE_URL}/save-collected-waste/`,
                 method: 'POST',
                 body: collectedWasteData,
             }),
@@ -55,7 +55,7 @@ export const wasteApi = apiSlice.injectEndpoints({
 
         // Task Endpoints
         getWasteCollectionTasks: builder.query({
-            query: () => `${WASTE_URL}/tasks/waste-collection/`,
+            query: () => `${WASTE_URL}/waste-collection-tasks/`,
         }),
 
         updateTaskStatus: builder.mutation({

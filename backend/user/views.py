@@ -3,7 +3,7 @@ from django.shortcuts import get_object_or_404
 from django.db import transaction
 from transaction.models import Transaction
 from .models import Reward
-from .serializers import RewardSerializer
+from .serializers import *
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -13,22 +13,22 @@ from rest_framework.exceptions import PermissionDenied
 
 class GetOrCreateRewardView(APIView):
     permission_classes = [IsAuthenticated]
-    
-    def post(self, request):
+
+    def post(self, request, *args, **kwargs):
         user = request.user
-        
-        reward, created = Reward.objects.get_or_create(
-            user=user,
-            defaults={
-                'name': 'Default Reward',
-                'collection_info': 'Default Collection Info',
-                'points': 0,
-                'level': 1,
-                'is_available': True,
-            }
-        )
-        serializer = RewardSerializer(reward)
-        return Response(serializer.data, status=status.HTTP_200_OK if not created else status.HTTP_201_CREATED)
+
+        # Check if a reward already exists for this user.
+        reward = Reward.objects.filter(user=user).first()
+        if reward:
+            serializer = RewardSerializer(reward)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        # If no reward exists, validate and create one using the provided data.
+        serializer = RewardCreateUpdateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        # The serializer's save() method will create a new Reward and automatically associate the current user.
+        serializer.save(user=user)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 
 class UpdateRewardPointsView(APIView):
@@ -42,35 +42,36 @@ class UpdateRewardPointsView(APIView):
         reward.points += points_to_add
         reward.updated_at = now()
         reward.save()
-        serializer = RewardSerializer(reward)
+        serializer = RewardCreateUpdateSerializer(reward)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
 class SaveRewardView(APIView):
-    def post(self, request, user_id):
-        data = {
-            'user': user_id,
-            'name': 'Waste Collection Reward',
-            'collection_info': 'Points earned from waste collection',
-            'points': request.data.get('amount', 0),
-            'level': 1,
-            'is_available': True,
-        }
-        serializer = RewardSerializer(data=data)
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        user = request.user
+        
+        if user.role != "collector":
+            raise PermissionDenied(
+                "You do not have permission save reward.")
+
+        serializer = RewardCreateUpdateSerializer(data=request.data)
         if serializer.is_valid():
             with transaction.atomic():  # Ensuring atomicity for both operations
                 # Save the reward
-                reward = serializer.save()
+                reward = serializer.save(user=user)  # Explicitly assign user
 
                 # Create a transaction for the reward
                 Transaction.objects.create(
-                    user=reward.user,
-                    type='earned',
+                    user=user,
+                    trans_type='earned',  # Ensure this matches the Transaction model field
                     amount=reward.points,
                     description=f"Reward earned: {reward.name}"
                 )
 
             return Response(serializer.data, status=status.HTTP_201_CREATED)
+
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -82,8 +83,16 @@ class GetAllRewardsView(APIView):
 
 
 class GetAvailableRewardsView(APIView):
-    def get(self, request, user_id):
-        user_rewards = Reward.objects.filter(user_id=user_id)
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        user = request.user
+        
+        # if user != Reward.user:
+        #     raise PermissionDenied(
+        #         "You do not have permission to see availabel rewards.")
+        
+        user_rewards = Reward.objects.filter(user=user)
         user_points = sum(reward.points for reward in user_rewards)
         available_rewards = Reward.objects.filter(is_available=True)
         rewards_data = RewardSerializer(available_rewards, many=True).data
@@ -98,9 +107,16 @@ class GetAvailableRewardsView(APIView):
 
 
 class RedeemRewardView(APIView):
-    def post(self, request, user_id, reward_id):
-        reward = get_object_or_404(Reward, user_id=user_id)
-
+    permission_classes = [IsAuthenticated]
+    
+    def post(self, request, reward_id):
+        user = request.user
+        
+        if user != Reward.user:
+            raise PermissionDenied(
+                "You do not have permission to Redeem Reward.")
+            
+        reward = get_object_or_404(Reward, user=user)
         with transaction.atomic():  # Ensuring atomicity for reward and transaction update
             if reward_id == 0:  # Clear all points
                 redeemed_points = reward.points
@@ -111,7 +127,7 @@ class RedeemRewardView(APIView):
                 # Create a transaction for clearing all points
                 Transaction.objects.create(
                     user=reward.user,
-                    type='redeemed',
+                    trans_type='redeemed',
                     amount=redeemed_points,
                     description="All reward points redeemed."
                 )
@@ -130,7 +146,7 @@ class RedeemRewardView(APIView):
                 # Create a transaction for the specific reward redemption
                 Transaction.objects.create(
                     user=reward.user,
-                    type='redeemed',
+                    trans_type='redeemed',
                     amount=redeemed_points,
                     description=f"Reward redeemed: {available_reward.name}"
                 )

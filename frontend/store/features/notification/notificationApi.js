@@ -5,15 +5,13 @@ export const notificationApi = apiSlice.injectEndpoints({
     endpoints: (builder) => ({
         createNotification: builder.mutation({
             query: (data) => ({
-                url: `${NOTIFICATION_URL}/notifications/create/`,
+                url: `${NOTIFICATION_URL}/create-notification`,
                 method: 'POST',
                 body: data,
             }),
-            invalidatesTags: ['Notifications'],
         }),
         getUnreadNotifications: builder.query({
-            query: (userId) => `${NOTIFICATION_URL}/notifications/unread/${userId}/`,
-            providesTags: ['Notifications'],
+            query: () => `${NOTIFICATION_URL}/unread-notifications`,
         }),
         markNotificationAsRead: builder.mutation({
             query: (notificationId) => ({

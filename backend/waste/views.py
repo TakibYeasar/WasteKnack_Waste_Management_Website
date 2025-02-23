@@ -4,7 +4,7 @@ from user.models import Reward
 from transaction.models import Transaction
 from notification.models import Notification
 from django.db import transaction
-from .serializers import ReportSerializer, CollectedWasteSerializer
+from .serializers import *
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
@@ -17,14 +17,20 @@ class CreateReportAPIView(APIView):
     
     
     def post(self, request):
-        serializer = ReportSerializer(data=request.data)
+        
+        user = request.user
+        if user.role != 'user':
+            raise PermissionDenied(
+                "You do not have permission to Create a Report.")
+            
+        serializer = ReportCreateUpdateSerializer(data=request.data)
         if serializer.is_valid():
             with transaction.atomic():  # Ensure atomicity for all operations
                 # Save the report
-                report = serializer.save()
+                report = serializer.save(user=request.user)
 
                 # Update or create a reward record
-                reward = Reward.objects.get_or_create(
+                reward, created = Reward.objects.get_or_create(
                     user=report.user)
                 reward.points += 10
                 reward.save()
@@ -32,7 +38,7 @@ class CreateReportAPIView(APIView):
                 # Create a transaction for the earned points
                 Transaction.objects.create(
                     user=report.user,
-                    type='earned',
+                    trans_type='earned',
                     amount=10,
                     description="Points earned for reporting waste."
                 )
@@ -41,7 +47,7 @@ class CreateReportAPIView(APIView):
                 Notification.objects.create(
                     user=report.user,
                     message="You have earned 10 points for reporting waste!",
-                    type='success'
+                    message_type='success'
                 )
 
             return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -53,14 +59,26 @@ class GetReportsByUserAPIView(APIView):
     
     def get(self, request):
         user = request.user
+        if user.role != 'user':
+            raise PermissionDenied(
+                "You do not have permission to see reports.")
+            
         reports = Report.objects.filter(user=user)
         serializer = ReportSerializer(reports, many=True)
         return Response(serializer.data)
 
 
 class CreateCollectedWasteAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+    
     def post(self, request):
-        serializer = CollectedWasteSerializer(data=request.data)
+        
+        user = request.user
+        if user.role != 'collector':
+            raise PermissionDenied(
+                "You do not have permission to Collect Waste.")
+            
+        serializer = CollectedWasteCreateUpdateSerializer(data=request.data)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -72,6 +90,9 @@ class GetCollectedWastesByCollectorAPIView(APIView):
     
     def get(self, request):
         user = request.user
+        if user.role != 'collector':
+            raise PermissionDenied(
+                "You do not have permission to see Collected Waste.")
         
         collected_wastes = CollectedWaste.objects.filter(
             collector=user)
@@ -87,9 +108,11 @@ class GetPendingReportsAPIView(APIView):
 
 
 class UpdateReportStatusAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+    
     def patch(self, request, report_id):
         report = get_object_or_404(Report, id=report_id)
-        serializer = ReportSerializer(report, data=request.data, partial=True)
+        serializer = ReportCreateUpdateSerializer(report, data=request.data, partial=True)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)
@@ -111,8 +134,23 @@ class GetWasteCollectionTasksAPIView(APIView):
 
 
 class SaveCollectedWasteAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
     def post(self, request):
-        serializer = CollectedWasteSerializer(data=request.data)
+        user = request.user
+        report_id = request.data.get('report')
+        report = get_object_or_404(Report, id=report_id)
+
+        if report.status != 'verified':
+            return Response({'error': 'Report must be verified before collection'}, status=status.HTTP_400_BAD_REQUEST)
+
+        collected_waste_data = {
+            'report': report.id,
+            'collector': user.id,
+            'status': 'collected',
+        }
+
+        serializer = CollectedWasteCreateUpdateSerializer(data=collected_waste_data)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
@@ -120,10 +158,24 @@ class SaveCollectedWasteAPIView(APIView):
 
 
 class UpdateTaskStatusAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+
     def patch(self, request, report_id):
+        user = request.user
         report = get_object_or_404(Report, id=report_id)
-        data = request.data
-        serializer = ReportSerializer(report, data=data, partial=True)
+        new_status = request.data.get('status')
+        collector_id = request.data.get('collector')
+
+        if new_status not in dict(Report.STATUS_CHOICES):
+            return Response({'error': 'Invalid status'}, status=status.HTTP_400_BAD_REQUEST)
+
+        update_data = {'status': new_status}
+
+        if collector_id:
+            collector = get_object_or_404(user, id=collector_id)
+            update_data['collector'] = collector
+
+        serializer = ReportSerializer(report, data=update_data, partial=True)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data)

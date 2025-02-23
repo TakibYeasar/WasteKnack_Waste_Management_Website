@@ -5,7 +5,7 @@ const RecentTransactions = ({ transaction }) => {
   return (
       <div key={transaction.id} className="flex items-center justify-between p-4 border-b border-gray-200 last:border-b-0">
           <div className="flex items-center">
-              {transaction.type === 'earned_report' ? (
+              {transaction.trans_type === 'earned_report' ? (
                   <ArrowUpRight className="w-5 h-5 text-green-500 mr-3" />
               ) : transaction.type === 'earned_collect' ? (
                   <ArrowUpRight className="w-5 h-5 text-blue-500 mr-3" />
@@ -18,10 +18,10 @@ const RecentTransactions = ({ transaction }) => {
               </div>
           </div>
           <span
-              className={`font-semibold ${transaction.type.startsWith('earned') ? 'text-green-500' : 'text-red-500'
+              className={`font-semibold ${transaction.trans_type.startsWith('earned') ? 'text-green-500' : 'text-red-500'
                   }`}
           >
-              {transaction.type.startsWith('earned') ? '+' : '-'}
+              {transaction.trans_type.startsWith('earned') ? '+' : '-'}
               {transaction.amount}
           </span>
       </div>

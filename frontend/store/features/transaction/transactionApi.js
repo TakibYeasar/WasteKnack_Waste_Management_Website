@@ -5,24 +5,21 @@ export const transactionApi = apiSlice.injectEndpoints({
     endpoints: (builder) => ({
         // Fetch reward transactions for a user
         getRewardTransactions: builder.query({
-            query: (userId) => `${TRANSACTION_URL}/transactions/${userId}/`,
-            providesTags: (result, error, userId) => [{ type: 'Transaction', id: userId }],
+            query: () => `${TRANSACTION_URL}/transactions/`,
         }),
 
         // Create a new transaction
         createTransaction: builder.mutation({
             query: (transaction) => ({
-                url: `${TRANSACTION_URL}/transactions/create/`,
+                url: `${TRANSACTION_URL}/create-transactions/`,
                 method: 'POST',
                 body: transaction,
             }),
-            invalidatesTags: ['Transaction', 'Balance'],
         }),
 
         // Fetch the user balance
         getUserBalance: builder.query({
-            query: (userId) => `${TRANSACTION_URL}/balance/${userId}/`,
-            providesTags: (result, error, userId) => [{ type: 'Balance', id: userId }],
+            query: () => `${TRANSACTION_URL}/balance/`,
         }),
     }),
 });

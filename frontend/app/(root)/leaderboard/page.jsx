@@ -1,15 +1,16 @@
 'use client';
-import { useState, useEffect } from 'react';
+
 import { Loader, Award, User, Trophy, Crown } from 'lucide-react';
-import { toast } from 'react-hot-toast';
 import { useCurrentUserQuery } from "../../../store/features/auth/authApi";
 import { useGetAllRewardsQuery } from '@/store/features/user/userApi';
 
 export default function LeaderboardPage() {
 
-    const [loading, setLoading] = useState(false);
-    const { data: userInfo } = useCurrentUserQuery();
-    const { data: rewards } = useGetAllRewardsQuery();
+    const { data: userInfo, isLoading: userLoading } = useCurrentUserQuery();
+    const { data: rewards, isLoading: rewardsLoading } = useGetAllRewardsQuery();
+
+    // Combine loading states from both queries.
+    const loading = userLoading || rewardsLoading;
 
     return (
         <div className="">
@@ -68,7 +69,7 @@ export default function LeaderboardPage() {
                                                         <User className="h-full w-full rounded-full bg-gray-200 text-gray-500 p-2" />
                                                     </div>
                                                     <div className="ml-4">
-                                                        <div className="text-sm font-medium text-gray-900">{reward.userName}</div>
+                                                        <div className="text-sm font-medium text-gray-900">{reward.name}</div>
                                                     </div>
                                                 </div>
                                             </td>

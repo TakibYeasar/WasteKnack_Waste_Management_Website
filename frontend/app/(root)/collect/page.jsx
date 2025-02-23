@@ -7,8 +7,9 @@ import { Input } from '@/components/ui/input';
 import { toast } from 'react-hot-toast';
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { useCurrentUserQuery } from "../../../store/features/auth/authApi";
-import { useGetWasteCollectionTasksQuery, useUpdateTaskStatusMutation, useSaveCollectedWasteMutation } from '@/store/features/waste/wasteApi';
-import { useSaveRewardMutation } from '@/store/features/user/userApi';
+import { useGetWasteCollectionTasksQuery, useUpdateTaskStatusMutation, useSaveCollectedWasteMutation } from '../../../store/features/waste/wasteApi';
+import { useSaveRewardMutation } from '../../../store/features/user/userApi';
+import StatusBadge from '@/components/containers/StatusBadge';
 
 const geminiApiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY
 const ITEMS_PER_PAGE = 5
@@ -16,9 +17,11 @@ const ITEMS_PER_PAGE = 5
 const CollectPage = () => {
 
     const { data: userInfo } = useCurrentUserQuery();
-    const { data: tasks } = useGetWasteCollectionTasksQuery();
+    const { data: tasks = [], isLoading } = useGetWasteCollectionTasksQuery();
+    const [updateTaskStatus] = useUpdateTaskStatusMutation();
+    const [saveCollectedWaste] = useSaveCollectedWasteMutation();
+    const [saveReward] = useSaveRewardMutation();
 
-    const [loading, setLoading] = useState(false);
     const [hoveredWasteType, setHoveredWasteType] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
@@ -44,9 +47,9 @@ const CollectPage = () => {
         }
 
         try {
-            const updatedTask = await useUpdateTaskStatusMutation({
-                taskId,
-                newStatus,
+            const { data: updatedTask } = await updateTaskStatus({
+                reportId: taskId,
+                updateData: { status: newStatus },
             });
             if (updatedTask) {
                 toast.success('Task status updated successfully.');
@@ -59,10 +62,6 @@ const CollectPage = () => {
         }
     };
 
-    const readFileAsBase64 = (dataUrl) => {
-        return dataUrl.split(',')[1];
-    };
-
     const handleVerify = async () => {
         if (!selectedTask || !verificationImage || !userInfo) {
             toast.error('Missing required information for verification.');
@@ -72,6 +71,7 @@ const CollectPage = () => {
         setVerificationStatus('verifying');
 
         try {
+            // Verification logic here...
             const genAI = new GoogleGenerativeAI(geminiApiKey);
             const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
@@ -99,6 +99,7 @@ const CollectPage = () => {
             setVerificationResult(parsedResult);
             setVerificationStatus('success');
 
+            // Assuming verification is successful:
             if (
                 parsedResult.wasteTypeMatch &&
                 parsedResult.quantityMatch &&
@@ -106,14 +107,14 @@ const CollectPage = () => {
             ) {
                 await handleStatusChange(selectedTask.id, 'verified');
                 const earnedReward = Math.floor(Math.random() * 50) + 10;
-                await useSaveRewardMutation({
+                await saveReward({
                     userId: userInfo.id,
-                    reward: earnedReward,
+                    amount: earnedReward,
                 });
-                await useSaveCollectedWasteMutation({
+                await saveCollectedWaste({
                     taskId: selectedTask.id,
                     userId: userInfo.id,
-                    data: parsedResult,
+                    data: verificationResult,
                 });
                 setReward(earnedReward);
                 toast.success(`Verification successful! You earned ${earnedReward} tokens.`);
@@ -126,12 +127,9 @@ const CollectPage = () => {
         }
     };
 
-    const filteredTasks = tasks
-        ? tasks.filter((task) =>
-            task.location.toLowerCase().includes(searchTerm.toLowerCase())
-        )
-        : [];
-
+    const filteredTasks = tasks.filter((task) =>
+        task.location.toLowerCase().includes(searchTerm.toLowerCase())
+    );
 
     const pageCount = Math.ceil(filteredTasks.length / ITEMS_PER_PAGE);
     const paginatedTasks = filteredTasks.slice(
@@ -156,67 +154,71 @@ const CollectPage = () => {
                 </Button>
             </div>
 
-            {loading ? (
+            {isLoading ? (
                 <div className="flex justify-center items-center h-64">
                     <Loader className="animate-spin h-8 w-8 text-gray-500" />
                 </div>
             ) : (
                 <>
                     <div className="space-y-4">
-                        {paginatedTasks.map(task => (
-                            <div key={task.id} className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
-                                <div className="flex justify-between items-center mb-2">
-                                    <h2 className="text-lg font-medium text-gray-800 flex items-center">
-                                        <MapPin className="w-5 h-5 mr-2 text-gray-500" />
-                                        {task.location}
-                                    </h2>
-                                    <StatusBadge status={task.status} />
-                                </div>
-                                <div className="grid grid-cols-3 gap-2 text-sm text-gray-600 mb-3">
-                                    <div className="flex items-center relative">
-                                        <Trash2 className="w-4 h-4 mr-2 text-gray-500" />
-                                        <span
-                                            onMouseEnter={() => setHoveredWasteType(task.wasteType)}
-                                            onMouseLeave={() => setHoveredWasteType(null)}
-                                            className="cursor-pointer"
-                                        >
-                                            {task.wasteType.length > 8 ? `${task.wasteType.slice(0, 8)}...` : task.wasteType}
-                                        </span>
-                                        {hoveredWasteType === task.wasteType && (
-                                            <div className="absolute left-0 top-full mt-1 p-2 bg-gray-800 text-white text-xs rounded shadow-lg z-10">
-                                                {task.wasteType}
-                                            </div>
+                        {Array.isArray(paginatedTasks) && paginatedTasks.length > 0 ? (
+                            paginatedTasks.map(task => (
+                                <div key={task.id} className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
+                                    <div className="flex justify-between items-center mb-2">
+                                        <h2 className="text-lg font-medium text-gray-800 flex items-center">
+                                            <MapPin className="w-5 h-5 mr-2 text-gray-500" />
+                                            {task.location}
+                                        </h2>
+                                        <StatusBadge status={task.status} />
+                                    </div>
+                                    <div className="grid grid-cols-3 gap-2 text-sm text-gray-600 mb-3">
+                                        <div className="flex items-center relative">
+                                            <Trash2 className="w-4 h-4 mr-2 text-gray-500" />
+                                            <span
+                                                onMouseEnter={() => setHoveredWasteType(task.wasteType)}
+                                                onMouseLeave={() => setHoveredWasteType(null)}
+                                                className="cursor-pointer"
+                                            >
+                                                {task.wasteType?.length > 8 ? `${task.wasteType.slice(0, 8)}...` : task.wasteType}
+                                            </span>
+                                            {hoveredWasteType === task.wasteType && (
+                                                <div className="absolute left-0 top-full mt-1 p-2 bg-gray-800 text-white text-xs rounded shadow-lg z-10">
+                                                    {task.wasteType}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="flex items-center">
+                                            <Weight className="w-4 h-4 mr-2 text-gray-500" />
+                                            {task.amount}
+                                        </div>
+                                        <div className="flex items-center">
+                                            <Calendar className="w-4 h-4 mr-2 text-gray-500" />
+                                            {task.date}
+                                        </div>
+                                    </div>
+                                    <div className="flex justify-end">
+                                        {task.status === 'pending' && (
+                                            <Button onClick={() => handleStatusChange(task.id, 'in_progress')} variant="outline" size="sm">
+                                                Start Collection
+                                            </Button>
+                                        )}
+                                        {task.status === 'in_progress' && task.collectorId === user?.id && (
+                                            <Button onClick={() => setSelectedTask(task)} variant="outline" size="sm">
+                                                Complete & Verify
+                                            </Button>
+                                        )}
+                                        {task.status === 'in_progress' && task.collectorId !== user?.id && (
+                                            <span className="text-yellow-600 text-sm font-medium">In progress by another collector</span>
+                                        )}
+                                        {task.status === 'verified' && (
+                                            <span className="text-green-600 text-sm font-medium">Reward Earned</span>
                                         )}
                                     </div>
-                                    <div className="flex items-center">
-                                        <Weight className="w-4 h-4 mr-2 text-gray-500" />
-                                        {task.amount}
-                                    </div>
-                                    <div className="flex items-center">
-                                        <Calendar className="w-4 h-4 mr-2 text-gray-500" />
-                                        {task.date}
-                                    </div>
                                 </div>
-                                <div className="flex justify-end">
-                                    {task.status === 'pending' && (
-                                        <Button onClick={() => handleStatusChange(task.id, 'in_progress')} variant="outline" size="sm">
-                                            Start Collection
-                                        </Button>
-                                    )}
-                                    {task.status === 'in_progress' && task.collectorId === user?.id && (
-                                        <Button onClick={() => setSelectedTask(task)} variant="outline" size="sm">
-                                            Complete & Verify
-                                        </Button>
-                                    )}
-                                    {task.status === 'in_progress' && task.collectorId !== user?.id && (
-                                        <span className="text-yellow-600 text-sm font-medium">In progress by another collector</span>
-                                    )}
-                                    {task.status === 'verified' && (
-                                        <span className="text-green-600 text-sm font-medium">Reward Earned</span>
-                                    )}
-                                </div>
-                            </div>
-                        ))}
+                            ))
+                        ) : (
+                            <p className="text-gray-500 text-center">No tasks available</p>
+                        )}
                     </div>
 
                     <div className="mt-4 flex justify-center">
@@ -296,12 +298,6 @@ const CollectPage = () => {
                         </Button>
                     </div>
                 </div>
-            )}
-
-            {userInfo ? (
-                <p className="text-sm text-gray-600 mb-4">Logged in as: {user.name}</p>
-            ) : (
-                <p className="text-sm text-red-600 mb-4">Please log in to collect waste and earn rewards.</p>
             )}
         </div>
     )

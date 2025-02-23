@@ -4,39 +4,39 @@ import { USERS_URL } from "../../constant";
 export const userApi = apiSlice.injectEndpoints({
     endpoints: (builder) => ({
         getOrCreateReward: builder.mutation({
-            query: (userId) => ({
-                url: `${USERS_URL}/reward/${userId}/get-or-create/`,
+            query: () => ({
+                url: `${USERS_URL}/reward-get-or-create/`,
                 method: 'POST',
             }),
         }),
 
         updateRewardPoints: builder.mutation({
-            query: ({ userId, pointsToAdd }) => ({
-                url: `${USERS_URL}/reward/${userId}/update-points/`,
+            query: ({ pointsToAdd }) => ({
+                url: `${USERS_URL}/reward-update-points/`,
                 method: 'PATCH',
                 body: { points_to_add: pointsToAdd },
             }),
         }),
 
         saveReward: builder.mutation({
-            query: ({ userId, amount }) => ({
-                url: `${USERS_URL}/reward/${userId}/save/`,
+            query: ({ amount }) => ({
+                url: `${USERS_URL}/reward-save/`,
                 method: 'POST',
                 body: { amount },
             }),
         }),
 
         getAllRewards: builder.query({
-            query: () => 'rewards/',
+            query: () => `${USERS_URL}/rewards/`,
         }),
 
         getAvailableRewards: builder.query({
-            query: (userId) => `${USERS_URL}/rewards/${userId}/available/`,
+            query: () => `${USERS_URL}/rewards-available/`,
         }),
 
         redeemReward: builder.mutation({
-            query: ({ userId, rewardId }) => ({
-                url: `${USERS_URL}/reward/${userId}/redeem/${rewardId}/`,
+            query: ({ rewardId }) => ({
+                url: `${USERS_URL}/reward-redeem/${rewardId}/`,
                 method: 'POST',
             }),
         }),

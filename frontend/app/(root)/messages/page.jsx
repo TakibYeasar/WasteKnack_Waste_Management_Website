@@ -3,6 +3,8 @@ import { useState, useEffect, useRef } from 'react';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { Send, Loader2 } from 'lucide-react';
 
+const API_KEY = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+
 export default function MessagesPage() {
     const [messages, setMessages] = useState([]);
     const [input, setInput] = useState('');
@@ -11,14 +13,11 @@ export default function MessagesPage() {
     const messagesEndRef = useRef(null);
 
     useEffect(() => {
-        const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_AI_API_KEY;
         console.log('API Key:', API_KEY ? 'Present' : 'Missing');
     }, []);
 
     useEffect(() => {
-        if (messagesEndRef.current) {
-            messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
-        }
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages]);
 
     const handleSubmit = async (e) => {
@@ -33,7 +32,6 @@ export default function MessagesPage() {
         setInput('');
 
         try {
-            const API_KEY = process.env.NEXT_PUBLIC_GOOGLE_AI_API_KEY;
             if (!API_KEY) throw new Error('API key is missing');
 
             const genAI = new GoogleGenerativeAI(API_KEY);
@@ -44,8 +42,7 @@ export default function MessagesPage() {
             const responseText = result.response.text();
             console.log('Received response:', responseText);
 
-            const assistantMessage = { role: 'assistant', content: responseText };
-            setMessages((prev) => [...prev, assistantMessage]);
+            setMessages((prev) => [...prev, { role: 'assistant', content: responseText }]);
         } catch (err) {
             console.error('Error:', err);
             setError(err.message || 'An unknown error occurred');
@@ -56,46 +53,36 @@ export default function MessagesPage() {
 
     return (
         <div className="flex flex-col h-screen bg-gray-100">
+            {/* Chat Messages */}
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
                 {messages.map((msg, index) => (
-                    <div
-                        key={index}
-                        className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'
-                            }`}
-                    >
-                        <div
-                            className={`max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl rounded-lg p-3 ${msg.role === 'user'
-                                    ? 'bg-blue-500 text-white'
-                                    : 'bg-white text-gray-800'
-                                }`}
-                        >
+                    <div key={index} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                        <div className={`max-w-lg rounded-lg p-3 shadow-md ${msg.role === 'user' ? 'bg-blue-500 text-white' : 'bg-white text-gray-800'}`}>
                             <p>{msg.content}</p>
                         </div>
                     </div>
                 ))}
-                {error && <p className="text-red-500 text-center">{error}</p>}
+                {error && <p className="text-red-500 text-center font-medium">{error}</p>}
                 <div ref={messagesEndRef} />
             </div>
-            <form onSubmit={handleSubmit} className="p-4 bg-white border-t">
-                <div className="flex space-x-2">
+
+            {/* Input Field */}
+            <form onSubmit={handleSubmit} className="p-4 bg-white border-t shadow-md">
+                <div className="flex items-center space-x-2">
                     <input
                         type="text"
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
-                        placeholder="Type your message here..."
-                        className="flex-grow px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        placeholder="Type your message..."
+                        className="flex-grow px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
                         disabled={isLoading}
                     />
                     <button
                         type="submit"
-                        className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
+                        className="p-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
                         disabled={isLoading}
                     >
-                        {isLoading ? (
-                            <Loader2 className="w-5 h-5 animate-spin" />
-                        ) : (
-                            <Send className="w-5 h-5" />
-                        )}
+                        {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5" />}
                     </button>
                 </div>
             </form>

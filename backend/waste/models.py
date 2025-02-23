@@ -7,8 +7,7 @@ class Report(models.Model):
         ('verified', 'Verified'),
         ('rejected', 'Rejected'),
     ]
-
-    id = models.AutoField(primary_key=True)
+    
     user = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='reports', on_delete=models.CASCADE)
     location = models.TextField()
     waste_type = models.CharField(max_length=255)
@@ -17,7 +16,6 @@ class Report(models.Model):
     verification_result = models.JSONField(blank=True, null=True)
     status = models.CharField(max_length=255, choices=STATUS_CHOICES, default='pending')
     created_at = models.DateTimeField(auto_now_add=True)
-    collector = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='collected_reports', on_delete=models.SET_NULL, null=True, blank=True)
 
     def __str__(self):
         return f"Report {self.id} by {self.user.email}"
@@ -28,11 +26,10 @@ class CollectedWaste(models.Model):
         ('collected', 'Collected'),
         ('pending', 'Pending'),
     ]
-
-    id = models.AutoField(primary_key=True)
+    
     report = models.ForeignKey(Report, related_name='collected_wastes', on_delete=models.CASCADE)
     collector = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='collections', on_delete=models.CASCADE)
-    collection_date = models.DateTimeField()
+    collection_date = models.DateTimeField(auto_now_add=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='collected')
 
     def __str__(self):
