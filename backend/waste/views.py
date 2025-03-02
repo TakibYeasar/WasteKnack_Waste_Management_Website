@@ -1,167 +1,127 @@
+from rest_framework import viewsets, generics, status
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404
+from django.db import transaction
 from .models import Report, CollectedWaste
+from .serializers import *
 from user.models import Reward
 from transaction.models import Transaction
 from notification.models import Notification
-from django.db import transaction
-from .serializers import *
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.exceptions import PermissionDenied
 
-
-class CreateReportAPIView(APIView):
+class ReportViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
-    
-    
-    def post(self, request):
-        
+    queryset = Report.objects.all().order_by('-created_at')
+    serializer_class = ReportSerializer
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.role == 'user':
+            return Report.objects.filter(user=user)
+        elif user.role == 'collector':
+            return Report.objects.filter(status='verified')
+        return super().get_queryset()
+
+    def create(self, request, *args, **kwargs):
         user = request.user
         if user.role != 'user':
             raise PermissionDenied(
-                "You do not have permission to Create a Report.")
-            
+                "You do not have permission to create a report.")
+
         serializer = ReportCreateUpdateSerializer(data=request.data)
         if serializer.is_valid():
-            with transaction.atomic():  # Ensure atomicity for all operations
-                # Save the report
-                report = serializer.save(user=request.user)
-
-                # Update or create a reward record
-                reward, created = Reward.objects.get_or_create(
-                    user=report.user)
+            with transaction.atomic():
+                report = serializer.save(user=user, status='pending')
+                reward, _ = Reward.objects.get_or_create(user=user)
                 reward.points += 10
                 reward.save()
 
-                # Create a transaction for the earned points
                 Transaction.objects.create(
-                    user=report.user,
-                    trans_type='earned',
-                    amount=10,
+                    user=user, trans_type='earned', amount=10,
                     description="Points earned for reporting waste."
                 )
 
-                # Create a notification for the user
                 Notification.objects.create(
-                    user=report.user,
-                    message="You have earned 10 points for reporting waste!",
+                    user=user, message="You have earned 10 points for reporting waste!",
                     message_type='success'
                 )
+            return Response(ReportSerializer(report).data, status=201)
+        return Response(serializer.errors, status=400)
 
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class PendingReportsListView(generics.ListAPIView):
+    queryset = Report.objects.filter(status='pending')
+    serializer_class = ReportSerializer
 
 
-class GetReportsByUserAPIView(APIView):
+class RecentReportsListView(generics.ListAPIView):
+    serializer_class = ReportSerializer
+
+    def get_queryset(self):
+        limit = self.request.query_params.get('limit', 10)
+        return Report.objects.order_by('-created_at')[:int(limit)]
+
+
+class WasteCollectionTasksListView(generics.ListAPIView):
+    serializer_class = ReportSerializer
+
+    def get_queryset(self):
+        limit = self.request.query_params.get('limit', 20)
+        return Report.objects.filter()[:int(limit)]
+
+
+class CollectedWasteViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
-    
-    def get(self, request):
+    queryset = CollectedWaste.objects.all().order_by('-collection_date')
+    serializer_class = CollectedWasteSerializer
+
+    def get_queryset(self):
+        user = self.request.user
+        if user.role == 'collector':
+            return CollectedWaste.objects.filter(collector=user)
+        return super().get_queryset()
+
+    def create(self, request, *args, **kwargs):
         user = request.user
-        if user.role != 'user':
-            raise PermissionDenied(
-                "You do not have permission to see reports.")
-            
-        reports = Report.objects.filter(user=user)
-        serializer = ReportSerializer(reports, many=True)
-        return Response(serializer.data)
-
-
-class CreateCollectedWasteAPIView(APIView):
-    permission_classes = [IsAuthenticated]
-    
-    def post(self, request):
-        
-        user = request.user
-        if user.role != 'collector':
-            raise PermissionDenied(
-                "You do not have permission to Collect Waste.")
-            
-        serializer = CollectedWasteCreateUpdateSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-class GetCollectedWastesByCollectorAPIView(APIView):
-    permission_classes = [IsAuthenticated]
-    
-    def get(self, request):
-        user = request.user
-        if user.role != 'collector':
-            raise PermissionDenied(
-                "You do not have permission to see Collected Waste.")
-        
-        collected_wastes = CollectedWaste.objects.filter(
-            collector=user)
-        serializer = CollectedWasteSerializer(collected_wastes, many=True)
-        return Response(serializer.data)
-
-
-class GetPendingReportsAPIView(APIView):
-    def get(self, request):
-        pending_reports = Report.objects.filter(status='pending')
-        serializer = ReportSerializer(pending_reports, many=True)
-        return Response(serializer.data)
-
-
-class UpdateReportStatusAPIView(APIView):
-    permission_classes = [IsAuthenticated]
-    
-    def patch(self, request, report_id):
-        report = get_object_or_404(Report, id=report_id)
-        serializer = ReportCreateUpdateSerializer(report, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
-class GetRecentReportsAPIView(APIView):
-    def get(self, request, limit=10):
-        recent_reports = Report.objects.order_by('-created_at')[:limit]
-        serializer = ReportSerializer(recent_reports, many=True)
-        return Response(serializer.data)
-
-
-class GetWasteCollectionTasksAPIView(APIView):
-    def get(self, request, limit=20):
-        tasks = Report.objects.all()[:limit]
-        serializer = ReportSerializer(tasks, many=True)
-        return Response(serializer.data)
-
-
-class SaveCollectedWasteAPIView(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def post(self, request):
-        user = request.user
-        report_id = request.data.get('report')
+        report_id = request.data.get('report_id')
         report = get_object_or_404(Report, id=report_id)
 
-        if report.status != 'verified':
-            return Response({'error': 'Report must be verified before collection'}, status=status.HTTP_400_BAD_REQUEST)
+        if user.role != 'collector':
+            raise PermissionDenied(
+                "You do not have permission to collect waste.")
 
-        collected_waste_data = {
-            'report': report.id,
-            'collector': user.id,
-            'status': 'collected',
-        }
-
-        serializer = CollectedWasteCreateUpdateSerializer(data=collected_waste_data)
+        serializer = CollectWasteCreateUpdateSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            with transaction.atomic():
+                collected_waste = serializer.save(
+                    report=report,
+                    collector=user,
+                    status='in_progress'
+                )
+                report.status = 'in_progress'
+                report.save()
 
+                reward = Reward.objects.create(
+                    user=user,
+                    name="Waste Collection Reward",
+                    points=10
+                )
 
-class UpdateTaskStatusAPIView(APIView):
-    permission_classes = [IsAuthenticated]
+                Transaction.objects.create(
+                    user=user,
+                    trans_type='earned',
+                    amount=reward.points,
+                    description=f"Reward earned: {reward.name}"
+                )
 
-    def patch(self, request, report_id):
+            return Response(CollectedWasteSerializer(collected_waste).data, status=201)
+        return Response(serializer.errors, status=400)
+
+    def partial_update(self, request, *args, **kwargs):
+        """Handles PATCH request to update the report status."""
         user = request.user
+        report_id = kwargs.get('pk')
         report = get_object_or_404(Report, id=report_id)
         new_status = request.data.get('status')
         collector_id = request.data.get('collector')
@@ -172,7 +132,7 @@ class UpdateTaskStatusAPIView(APIView):
         update_data = {'status': new_status}
 
         if collector_id:
-            collector = get_object_or_404(user, id=collector_id)
+            collector = get_object_or_404(user.__class__, id=collector_id)
             update_data['collector'] = collector
 
         serializer = ReportSerializer(report, data=update_data, partial=True)

@@ -7,8 +7,7 @@ import { Input } from '@/components/ui/input';
 import { toast } from 'react-hot-toast';
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { useCurrentUserQuery } from "../../../store/features/auth/authApi";
-import { useGetWasteCollectionTasksQuery, useUpdateTaskStatusMutation, useSaveCollectedWasteMutation } from '../../../store/features/waste/wasteApi';
-import { useSaveRewardMutation } from '../../../store/features/user/userApi';
+import { useCreateCollectedWasteMutation, useGetWasteCollectionTasksQuery } from '../../../store/features/waste/wasteApi';
 import StatusBadge from '@/components/containers/StatusBadge';
 
 const geminiApiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY
@@ -18,9 +17,7 @@ const CollectPage = () => {
 
     const { data: userInfo } = useCurrentUserQuery();
     const { data: tasks = [], isLoading } = useGetWasteCollectionTasksQuery();
-    const [updateTaskStatus] = useUpdateTaskStatusMutation();
-    const [saveCollectedWaste] = useSaveCollectedWasteMutation();
-    const [saveReward] = useSaveRewardMutation();
+    const [createCollection] = useCreateCollectedWasteMutation();
 
     const [hoveredWasteType, setHoveredWasteType] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
@@ -29,7 +26,6 @@ const CollectPage = () => {
     const [verificationImage, setVerificationImage] = useState(null);
     const [verificationStatus, setVerificationStatus] = useState('idle');
     const [verificationResult, setVerificationResult] = useState(null);
-    const [reward, setReward] = useState(null);
 
     const handleImageUpload = (e) => {
         const file = e.target.files?.[0];
@@ -47,18 +43,20 @@ const CollectPage = () => {
         }
 
         try {
-            const { data: updatedTask } = await updateTaskStatus({
+            // newStatus is set server-side to 'collected'
+            const response = await createCollection({
                 reportId: taskId,
-                updateData: { status: newStatus },
-            });
-            if (updatedTask) {
+                status: newStatus
+            }).unwrap();
+
+            if (response) {
                 toast.success('Task status updated successfully.');
             } else {
                 toast.error('Failed to update task status. Please try again.');
             }
         } catch (error) {
             console.error('Error updating task status:', error);
-            toast.error('Failed to update task status. Please try again.');
+            toast.error(error?.data?.error || 'Failed to update task status. Please try again.');
         }
     };
 
@@ -107,16 +105,6 @@ const CollectPage = () => {
             ) {
                 await handleStatusChange(selectedTask.id, 'verified');
                 const earnedReward = Math.floor(Math.random() * 50) + 10;
-                await saveReward({
-                    userId: userInfo.id,
-                    amount: earnedReward,
-                });
-                await saveCollectedWaste({
-                    taskId: selectedTask.id,
-                    userId: userInfo.id,
-                    data: verificationResult,
-                });
-                setReward(earnedReward);
                 toast.success(`Verification successful! You earned ${earnedReward} tokens.`);
             } else {
                 toast.error('Verification failed. Waste does not match.');
@@ -202,14 +190,14 @@ const CollectPage = () => {
                                                 Start Collection
                                             </Button>
                                         )}
-                                        {task.status === 'in_progress' && task.collectorId === user?.id && (
+                                        {task.status === 'in_progress' && (
                                             <Button onClick={() => setSelectedTask(task)} variant="outline" size="sm">
                                                 Complete & Verify
                                             </Button>
                                         )}
-                                        {task.status === 'in_progress' && task.collectorId !== user?.id && (
+                                        {/* {task.status === 'in_progress' && task.collector !== userInfo?.id && (
                                             <span className="text-yellow-600 text-sm font-medium">In progress by another collector</span>
-                                        )}
+                                        )} */}
                                         {task.status === 'verified' && (
                                             <span className="text-green-600 text-sm font-medium">Reward Earned</span>
                                         )}

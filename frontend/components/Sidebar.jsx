@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { MapPin, Trash, Coins, Medal, MessageCircle, Home } from "lucide-react";
+import { MapPin, Trash, Coins, Medal, MessageCircle, Home, Settings } from "lucide-react";
 import { useCurrentUserQuery } from "@/store/features/auth/authApi";
 
 const sidebarItems = {

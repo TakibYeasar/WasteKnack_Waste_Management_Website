@@ -3,7 +3,7 @@ import { ArrowUpRight, ArrowDownRight } from 'lucide-react';
 
 const RecentTransactions = ({ transaction }) => {
   return (
-      <div key={transaction.id} className="flex items-center justify-between p-4 border-b border-gray-200 last:border-b-0">
+      <div className="flex items-center justify-between p-4 border-b border-gray-200 last:border-b-0">
           <div className="flex items-center">
               {transaction.trans_type === 'earned_report' ? (
                   <ArrowUpRight className="w-5 h-5 text-green-500 mr-3" />

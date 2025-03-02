@@ -17,28 +17,33 @@ export default function RewardsPage() {
     const { data: rewards } = useGetAvailableRewardsQuery();
     const { data: transactions } = useGetRewardTransactionsQuery();
 
-    // useEffect(() => {
-    //     const fetchUserBalance = async () => {
-    //         setLoading(true);
-    //         try {
-    //             if (userInfo) {
-    //                 const calculatedBalance = transactions.reduce((acc, transaction) => {
-    //                     return transaction.type.startsWith('earned') ? acc + transaction.amount : acc - transaction.amount;
-    //                 }, 0);
-    //                 setBalance(Math.max(calculatedBalance, 0));
-    //             } else {
-    //                 toast.error('User not found. Please log in again.');
-    //             }
-    //         } catch (error) {
-    //             console.error('Error fetching user balance:', error);
-    //             toast.error('Failed to load user balance. Please try again.');
-    //         } finally {
-    //             setLoading(false);
-    //         }
-    //     };
+    useEffect(() => {
+        if (!transactions || !Array.isArray(transactions)) {
+            return; // Exit early if transactions are undefined or not an array
+        }
 
-    //     fetchUserBalance();
-    // }, []);
+        if (userInfo) {
+            const calculatedBalance = transactions.reduce((acc, transaction) => {
+                return transaction.trans_type?.startsWith('earned') ? acc + transaction.amount : acc - transaction.amount;
+            }, 0);
+            setBalance(Math.max(calculatedBalance, 0));
+        } else {
+            toast.error('User not found. Please log in again.');
+        }
+
+        // Event listener to update balance dynamically
+        const handleBalanceUpdate = (event) => {
+            setBalance(event.detail);
+        };
+
+        window.addEventListener("balanceUpdated", handleBalanceUpdate);
+
+        return () => {
+            window.removeEventListener("balanceUpdated", handleBalanceUpdate);
+        };
+    }, [transactions, userInfo]); // Depend on `transactions` and `userInfo`
+
+
 
     if (loading) {
         return (
@@ -71,7 +76,7 @@ export default function RewardsPage() {
                     <div className="bg-white rounded-xl shadow-md overflow-hidden">
                         {transactions?.length > 0 ? (
                             transactions.map((transaction) => (
-                                <RecentTransactions transaction={transaction} />
+                                <RecentTransactions key={transaction.id} transaction={transaction} />
                             ))
                         ) : (
                             <div className="p-4 text-center text-gray-500">No transactions yet</div>
@@ -82,9 +87,9 @@ export default function RewardsPage() {
                 <div>
                     <h2 className="text-2xl font-semibold mb-4 text-gray-800">Available Rewards</h2>
                     <div className="space-y-4">
-                        {rewards?.length > 0 ? (
-                            rewards.map((reward) => (
-                                <AvailableRewards reward={reward} balance={balance} />
+                        {rewards?.available_rewards?.length > 0 ? (
+                            rewards.available_rewards.map((reward) => (
+                                <AvailableRewards key={reward.id} reward={reward} balance={balance} />
                             ))
                         ) : (
                             <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-md">

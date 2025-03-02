@@ -1,5 +1,6 @@
 'use client';
-import { useEffect } from "react";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
@@ -18,16 +19,36 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
-const Header = ({ onMenuClick }) => {
+const Header = ({ onMenuClick, totalEarnings }) => {
   const router = useRouter();
   const dispatch = useDispatch();
   const isMobile = useMediaQuery("(max-width: 768px)");
 
   // Redux queries and mutations
   const { data: userInfo } = useCurrentUserQuery();
+  const { data: userBalance } = useGetUserBalanceQuery();
+  const [balance, setBalance] = useState(userBalance || 0);
   const { data: notifications = [] } = useGetUnreadNotificationsQuery();
   const [markNotificationAsRead] = useMarkNotificationAsReadMutation();
-  const { data: balance = 0 } = useGetUserBalanceQuery();
+
+
+  useEffect(() => {
+    // Update balance when fetched data changes
+    if (userBalance !== undefined) {
+      setBalance(userBalance?.balance ?? 0);
+    }
+
+    // Event listener to update balance dynamically
+    const handleBalanceUpdate = (event) => {
+      setBalance(event.detail);
+    };
+
+    window.addEventListener("balanceUpdated", handleBalanceUpdate);
+
+    return () => {
+      window.removeEventListener("balanceUpdated", handleBalanceUpdate);
+    };
+  }, [userBalance]); // Depend on `userBalance`, not `userInfo`
 
   useEffect(() => {
     const tokenTimestamp = localStorage.getItem('loginTimestamp');
@@ -102,72 +123,75 @@ const Header = ({ onMenuClick }) => {
 
         {/* Right Section */}
         <div className="flex items-center space-x-4">
+          {/* Search Button (Mobile) */}
           {isMobile && (
             <Button variant="ghost" size="icon" className="mr-2">
               <Search className="h-5 w-5" />
             </Button>
           )}
 
-          {/* Notifications Dropdown */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="mr-2 relative">
-                <Bell className="h-5 w-5" />
-                {notifications.length > 0 && (
-                  <Badge className="absolute -top-1 -right-1 px-1 min-w-[1.2rem] h-5">
-                    {notifications.length}
-                  </Badge>
-                )}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-64">
-              {notifications.length > 0 ? (
-                notifications.map((notification) => (
-                  <DropdownMenuItem
-                    key={notification.id}
-                    onClick={() => handleNotificationClick(notification.id)}
-                  >
-                    <div className="flex flex-col">
-                      <span className="font-medium">{notification.type}</span>
-                      <span className="text-sm text-gray-500">{notification.message}</span>
-                    </div>
-                  </DropdownMenuItem>
-                ))
-              ) : (
-                <DropdownMenuItem>No new notifications</DropdownMenuItem>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          {/* Total Earnings */}
-          <div className="mr-2 md:mr-4 flex items-center bg-gray-100 rounded-full px-2 md:px-3 py-1">
-            <Coins className="h-4 w-4 md:h-5 md:w-5 mr-1 text-green-500" />
-            <span className="font-semibold text-sm md:text-base text-gray-800">{balance.toFixed(2)}</span>
-          </div>
-
           {/* Authentication State: Sign In/Sign Up or User Profile */}
           {userInfo ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="flex items-center">
-                  <User className="h-5 w-5 mr-1" />
-                  <ChevronDown className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem>{userInfo?.username || "User"}</DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Link href="/profile">Profile</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleDashboardClick}>
-                  Dashboard
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleLogout}>
-                  Sign Out
-                  <LogOut className="ml-2 h-4 w-4" />
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <>
+              {/* Notifications Dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="mr-2 relative">
+                    <Bell className="h-5 w-5" />
+                    {notifications.length > 0 && (
+                      <Badge className="absolute -top-1 -right-1 px-1 min-w-[1.2rem] h-5">
+                        {notifications.length}
+                      </Badge>
+                    )}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-64">
+                  {notifications.length > 0 ? (
+                    notifications.map((notification) => (
+                      <DropdownMenuItem
+                        key={notification.id}
+                        onClick={() => handleNotificationClick(notification.id)}
+                      >
+                        <div className="flex flex-col">
+                          <span className="font-medium">{notification.type}</span>
+                          <span className="text-sm text-gray-500">{notification.message}</span>
+                        </div>
+                      </DropdownMenuItem>
+                    ))
+                  ) : (
+                    <DropdownMenuItem>No new notifications</DropdownMenuItem>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {/* Total Earnings */}
+              <div className="mr-2 md:mr-4 flex items-center bg-gray-100 rounded-full px-2 md:px-3 py-1">
+                <Coins className="h-4 w-4 md:h-5 md:w-5 mr-1 text-green-500" />
+                <span className="font-semibold text-sm md:text-base text-gray-800">
+                  {(Number(balance) || 0).toFixed(2)}
+                </span>
+              </div>
+
+              {/* User Profile Dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="flex items-center">
+                    <User className="h-5 w-5 mr-1" />
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem>{userInfo?.username || "User"}</DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <Link href="/profile">Profile</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleDashboardClick}>Dashboard</DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleLogout} className="flex justify-between">
+                    Sign Out <LogOut className="ml-2 h-4 w-4" />
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </>
           ) : (
             <div className="flex space-x-2">
               <Link href="/sign-up">
@@ -185,6 +209,8 @@ const Header = ({ onMenuClick }) => {
             </div>
           )}
         </div>
+
+        
       </div>
     </header>
   );

@@ -1,54 +1,33 @@
+from rest_framework import generics, permissions
 from django.shortcuts import get_object_or_404
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework import status
-from rest_framework.permissions import IsAuthenticated
 from .models import Notification
 from .serializers import *
 
 
-class CreateNotificationAPIView(APIView):
-    permission_classes = [IsAuthenticated]
-    
-    def post(self, request):
-        """
-        Create a new notification for a user.
-        """
-        user = request.user
-        data = request.data
-        notification = Notification.objects.create(
-            user=user,
-            message=data['message'],
-            message_type=data['message_type']
-        )
-        serializer = NotificationCreateUpdateSerializer(notification)
-        return Response(serializer.data, status=status.HTTP_201_CREATED)
+class CreateNotificationAPIView(generics.CreateAPIView):
+    serializer_class = NotificationCreateUpdateSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
 
 
-class UnreadNotificationsAPIView(APIView):
-    permission_classes = [IsAuthenticated]
-    
-    def get(self, request):
-        """
-        Fetch unread notifications for a given user.
-        """
-        user = request.user
-        notifications = Notification.objects.filter(
-            user=user, is_read=False)
-        serializer = NotificationSerializer(notifications, many=True)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+class UnreadNotificationsAPIView(generics.ListAPIView):
+    serializer_class = NotificationSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return Notification.objects.filter(user=self.request.user, is_read=False)
 
 
-class MarkNotificationAsReadAPIView(APIView):
-    permission_classes = [IsAuthenticated]
-    
-    def patch(self, request, notification_id):
-        """
-        Mark a specific notification as read.
-        """
-        notification = get_object_or_404(Notification, id=notification_id)
-        notification.is_read = True
-        notification.save()
-        serializer = NotificationCreateUpdateSerializer(notification)
-        return Response(serializer.data, status=status.HTTP_200_OK)
+class MarkNotificationAsReadAPIView(generics.UpdateAPIView):
+    serializer_class = NotificationCreateUpdateSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    lookup_url_kwarg = 'notification_id'
 
+    def get_object(self):
+        return get_object_or_404(Notification, id=self.kwargs['notification_id'])
+
+    def perform_update(self, serializer):
+        serializer.instance.is_read = True
+        serializer.save()

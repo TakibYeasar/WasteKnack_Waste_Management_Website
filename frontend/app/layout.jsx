@@ -23,8 +23,8 @@ const geistMono = localFont({
 
 function MainLayout({ children }) {
   // Fetch rewards data
-  const { data, isError, isLoading } = useGetAvailableRewardsQuery();
-  const totalEarnings = !isLoading && !isError ? data : 0;
+  const { data: rewards, isError, isLoading } = useGetAvailableRewardsQuery();
+  const totalEarnings = !isLoading && !isError ? rewards : 0;
 
   return (
     <div className="flex flex-col min-h-screen">

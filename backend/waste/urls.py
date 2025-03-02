@@ -1,24 +1,18 @@
-from django.urls import path
+from django.urls import path, include
+from rest_framework.routers import DefaultRouter
 from .views import *
 
+# Register viewsets with a router
+router = DefaultRouter()
+router.register(r'reports', ReportViewSet, basename='report')
+router.register(r'collected-waste', CollectedWasteViewSet,
+                basename='collected-waste')
+
 urlpatterns = [
-    path('create-report/', CreateReportAPIView.as_view(), name='create-report'),
-    path('user-reports/',
-         GetReportsByUserAPIView.as_view(), name='get-reports-by-user'),
-    path('collected-waste/create/', CreateCollectedWasteAPIView.as_view(),
-         name='create-collected-waste'),
-    path('collector/collected-waste/',
-         GetCollectedWastesByCollectorAPIView.as_view(), name='get-collected-wastes-by-collector'),
-    path('pending-reports/', GetPendingReportsAPIView.as_view(),
-         name='get-pending-reports'),
-    path('reports/<int:report_id>/update-status/',
-         UpdateReportStatusAPIView.as_view(), name='update-report-status'),
-    path('recent-reports/', GetRecentReportsAPIView.as_view(),
-         name='get-recent-reports'),
-    path('waste-collection-tasks/', GetWasteCollectionTasksAPIView.as_view(),
-         name='get-waste-collection-tasks'),
-    path('save-collected-waste/', SaveCollectedWasteAPIView.as_view(),
-         name='save-collected-waste'),
-    path('tasks/<int:report_id>/update-status/',
-         UpdateTaskStatusAPIView.as_view(), name='update-task-status'),
+    path('', include(router.urls)),  # Includes all routes from viewsets
+    path('pending-reports/', PendingReportsListView.as_view(),
+         name='pending-reports'),
+    path('recent-reports/', RecentReportsListView.as_view(), name='recent-reports'),
+    path('waste-collection-tasks/', WasteCollectionTasksListView.as_view(),
+         name='waste-collection-tasks'),
 ]

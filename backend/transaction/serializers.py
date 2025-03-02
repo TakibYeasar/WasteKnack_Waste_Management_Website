@@ -1,10 +1,11 @@
 from rest_framework import serializers
 from .models import Transaction
 
+
 class TransactionCreateUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Transaction
-        fields = ["user", "trans_type", "amount", "description"]
+        fields = ["trans_type", "amount", "description"]
 
 
 class TransactionSerializer(serializers.ModelSerializer):
