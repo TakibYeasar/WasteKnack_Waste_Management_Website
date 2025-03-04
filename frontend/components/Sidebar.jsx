@@ -32,9 +32,9 @@ export default function Sidebar({ open }) {
   const pathname = usePathname();
   const { data: user } = useCurrentUserQuery();
 
-  if (!user) return null; // Don't show sidebar if user is not logged in
+  if (!user) return null;
 
-  const menuItems = sidebarItems[user.role] || sidebarItems.user; // Default to "user" if role is unknown
+  const menuItems = sidebarItems[user.role] || sidebarItems.user;
 
   return (
     <aside
@@ -54,19 +54,17 @@ export default function Sidebar({ open }) {
             </Link>
           ))}
         </div>
-        {user.role === "admin" && (
-          <div className="p-4 border-t border-gray-200">
-            <Link href="/settings" passHref>
-              <Button
-                variant={pathname === "/settings" ? "secondary" : "outline"}
-                className={`w-full py-3 ${pathname === "/settings" ? "bg-green-100 text-green-800" : "text-gray-600 border-gray-300 hover:bg-gray-100"}`}
-              >
-                <Settings className="mr-3 h-5 w-5" />
-                <span className="text-base">Settings</span>
-              </Button>
-            </Link>
-          </div>
-        )}
+        <div className="p-4 border-t border-gray-200">
+          <Link href="/settings" passHref>
+            <Button
+              variant={pathname === "/settings" ? "secondary" : "outline"}
+              className={`w-full py-3 ${pathname === "/settings" ? "bg-green-100 text-green-800" : "text-gray-600 border-gray-300 hover:bg-gray-100"}`}
+            >
+              <Settings className="mr-3 h-5 w-5" />
+              <span className="text-base">Settings</span>
+            </Button>
+          </Link>
+        </div>
       </nav>
     </aside>
   );

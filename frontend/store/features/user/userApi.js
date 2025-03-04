@@ -3,6 +3,18 @@ import { USERS_URL } from "../../constant";
 
 export const userApi = apiSlice.injectEndpoints({
     endpoints: (builder) => ({
+        getUserProfile: builder.query({
+            query: () => `${USERS_URL}/profile/`,
+        }),
+
+        updateUserProfile: builder.mutation({
+            query: (profileData) => ({
+                url: `${USERS_URL}/profile/`,
+                method: "PUT",
+                body: profileData,
+            }),
+        }),
+
         updateRewardPoints: builder.mutation({
             query: ({ pointsToAdd }) => ({
                 url: `${USERS_URL}/update-rewards-points/`,
@@ -29,6 +41,8 @@ export const userApi = apiSlice.injectEndpoints({
 });
 
 export const {
+    useGetUserProfileQuery,
+    useUpdateUserProfileMutation,
     useUpdateRewardPointsMutation,
     useGetAllRewardsQuery,
     useGetAvailableRewardsQuery,

@@ -82,15 +82,6 @@ const Header = ({ onMenuClick, totalEarnings }) => {
     }
   };
 
-  const handleDashboardClick = () => {
-    const dashboardPath =
-      userInfo?.role === "admin" ? "/admin-dashboard" :
-        userInfo?.role === "collector" ? "/collector-dashboard" :
-          userInfo?.role === "user" ? "/user-dashboard" : '/sign-in';
-
-    router.push(dashboardPath);
-  };
-
   return (
     <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
       <div className="flex items-center justify-between px-4 py-2">
@@ -182,10 +173,11 @@ const Header = ({ onMenuClick, totalEarnings }) => {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem>{userInfo?.username || "User"}</DropdownMenuItem>
-                  <DropdownMenuItem>
-                    <Link href="/profile">Profile</Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={handleDashboardClick}>Dashboard</DropdownMenuItem>
+                  {userInfo?.role === "admin" && (
+                    <DropdownMenuItem>
+                      <Link href="/admin-dashboard">Dashboard</Link>
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem onClick={handleLogout} className="flex justify-between">
                     Sign Out <LogOut className="ml-2 h-4 w-4" />
                   </DropdownMenuItem>

@@ -12,6 +12,8 @@ class CustomUserManager(BaseUserManager):
             username=username,
             **extra_fields,
         )
+        username = username or email.split("@")[0]
+        user = self.model(email=email, username=username, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
         return user
@@ -37,7 +39,6 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
         ('user', 'User'),
         ('collector', 'Collector'),
     )
-    id = models.BigAutoField(primary_key=True, editable=False)
     email = models.EmailField(
         verbose_name="email address",
         max_length=255,

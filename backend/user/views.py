@@ -4,11 +4,18 @@ from django.db import transaction
 from django.db.models import Sum
 from rest_framework import viewsets, generics, status
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.exceptions import PermissionDenied
 from transaction.models import Transaction
 from .models import Reward
 from .serializers import *
+
+class UserProfileView(generics.RetrieveUpdateAPIView):
+    serializer_class = UserProfileSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self):
+        return UserProfile.objects.get(user=self.request.user)
 
 
 class RewardViewSet(viewsets.ModelViewSet):

@@ -1,75 +1,74 @@
 'use client'
-import React, { useState, useEffect } from 'react'
-import { User, Mail, Phone, MapPin, Save, Briefcase, Settings, Bell, Loader2 } from 'lucide-react'
-import { toast } from 'react-toastify'
-import 'react-toastify/dist/ReactToastify.css'
-import { motion } from 'framer-motion'
+import React, { useState, useEffect } from 'react';
+import { User, Mail, Phone, MapPin, Save, Briefcase, Loader2 } from 'lucide-react';
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import { motion } from 'framer-motion';
+import { useGetUserProfileQuery, useUpdateUserProfileMutation } from '@/store/features/user/userApi';
 
-export default function AdminSettingsPage() {
+export default function SettingsPage() {
+    const { data: profile, isLoading } = useGetUserProfileQuery();
+    const [updateProfile, { isLoading: isUpdating }] = useUpdateUserProfileMutation();
     const [settings, setSettings] = useState({
-        name: '',
+        first_name: '',
+        last_name: '',
         email: '',
         phone: '',
         address: '',
-        role: 'Administrator',
-        notifications: true,
-        autoApproveReports: false,
-        assignTasksAutomatically: false,
-    })
-    const [loading, setLoading] = useState(false)
+        role: '',
+        collection_area: '',
+        vehicle_number: '',
+        license_number: '',
+        waste_collection_frequency: ''
+    });
 
     useEffect(() => {
-        // Load settings from LocalStorage on mount
-        const savedSettings = localStorage.getItem('adminSettings')
-        if (savedSettings) {
-            setSettings(JSON.parse(savedSettings))
-        } else {
-            // Default values
+        if (profile) {
             setSettings({
-                name: 'Admin User',
-                email: 'admin@wastemanagement.com',
-                phone: '+1 987 654 3210',
-                address: '456 Greenway Blvd, EcoTown, 67890',
-                role: 'Administrator',
-                notifications: true,
-                autoApproveReports: false,
-                assignTasksAutomatically: false,
-            })
+                first_name: profile.user.first_name || '',
+                last_name: profile.user.last_name || '',
+                email: profile.user.email || '',
+                phone: profile.phone_number || '',
+                address: profile.address || '',
+                role: profile.user.role || '',
+                collection_area: profile.collection_area || '',
+                vehicle_number: profile.vehicle_number || '',
+                license_number: profile.license_number || '',
+                waste_collection_frequency: profile.waste_collection_frequency || ''
+            });
         }
-    }, [])
+    }, [profile]);
 
     const handleInputChange = (e) => {
-        const { name, value, type, checked } = e.target
-        const newSettings = { ...settings, [name]: type === 'checkbox' ? checked : value }
-        setSettings(newSettings)
-        localStorage.setItem('adminSettings', JSON.stringify(newSettings)) // Save to LocalStorage
-    }
+        const { name, value } = e.target;
+        setSettings((prev) => ({ ...prev, [name]: value }));
+    };
 
     const handleSubmit = async (e) => {
-        e.preventDefault()
-        setLoading(true)
+        e.preventDefault();
         try {
-            const response = await fetch('http://127.0.0.1:8000/api/admin/settings/', {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer YOUR_TOKEN_HERE`,
-                },
-                body: JSON.stringify(settings),
-            })
-
-            const data = await response.json()
-            if (!response.ok) {
-                toast.error('Failed to update settings.')
-            } else {
-                toast.success('Settings updated successfully!')
-            }
+            await updateProfile({
+                first_name: settings.first_name,
+                last_name: settings.last_name,
+                phone_number: settings.phone,
+                address: settings.address,
+                collection_area: settings.collection_area,
+                vehicle_number: settings.vehicle_number,
+                license_number: settings.license_number,
+                waste_collection_frequency: settings.waste_collection_frequency
+            }).unwrap();
+            toast.success('Profile updated successfully!');
         } catch (error) {
-            toast.error('Error updating settings.')
-            console.error('Error:', error)
-        } finally {
-            setLoading(false)
+            toast.error('Failed to update profile');
         }
+    };
+
+    if (isLoading) {
+        return (
+            <div className="flex justify-center items-center h-screen">
+                <Loader2 className="w-8 h-8 animate-spin text-green-500" />
+            </div>
+        );
     }
 
     return (
@@ -79,40 +78,108 @@ export default function AdminSettingsPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
         >
-            <h1 className="text-3xl font-semibold mb-6 text-gray-800 dark:text-white">Admin Settings</h1>
+            <h1 className="text-3xl font-semibold mb-6 text-gray-800 dark:text-white">Settings</h1>
 
             <form onSubmit={handleSubmit} className="space-y-6">
-                {/* Input Fields */}
-                {[
-                    { label: 'Full Name', name: 'name', type: 'text', icon: User },
-                    { label: 'Email Address', name: 'email', type: 'email', icon: Mail },
-                    { label: 'Phone Number', name: 'phone', type: 'tel', icon: Phone },
-                    { label: 'Address', name: 'address', type: 'text', icon: MapPin },
-                ].map(({ label, name, type, icon: Icon }) => (
-                    <div key={name}>
-                        <label htmlFor={name} className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            {label}
-                        </label>
-                        <div className="relative">
-                            <input
-                                type={type}
-                                id={name}
-                                name={name}
-                                value={settings[name]}
-                                onChange={handleInputChange}
-                                className="pl-10 w-full px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-md focus:ring-green-500 focus:border-green-500 text-gray-900 dark:text-white"
-                            />
-                            <Icon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-                        </div>
-                    </div>
-                ))}
-
-                {/* Role (Read-only) */}
+                {/* Full Name */}
                 <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Role</label>
+                    <label htmlFor="first_name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        First Name
+                    </label>
                     <div className="relative">
                         <input
                             type="text"
+                            id="first_name"
+                            name="first_name"
+                            value={settings.first_name}
+                            onChange={handleInputChange}
+                            className="pl-10 w-full px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-md text-gray-900 dark:text-white"
+                        />
+                        <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                    </div>
+                </div>
+
+                <div>
+                    <label htmlFor="last_name" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Last Name
+                    </label>
+                    <div className="relative">
+                        <input
+                            type="text"
+                            id="last_name"
+                            name="last_name"
+                            value={settings.last_name}
+                            onChange={handleInputChange}
+                            className="pl-10 w-full px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-md text-gray-900 dark:text-white"
+                        />
+                        <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                    </div>
+                </div>
+
+                {/* Email */}
+                <div>
+                    <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Email Address
+                    </label>
+                    <div className="relative">
+                        <input
+                            type="email"
+                            id="email"
+                            name="email"
+                            value={settings.email}
+                            onChange={handleInputChange}
+                            readOnly
+                            className="pl-10 w-full px-4 py-2 border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 rounded-md text-gray-900 dark:text-white"
+                        />
+                        <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                    </div>
+                </div>
+
+                {/* Phone Number */}
+                <div>
+                    <label htmlFor="phone" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Phone Number
+                    </label>
+                    <div className="relative">
+                        <input
+                            type="tel"
+                            id="phone"
+                            name="phone"
+                            value={settings.phone}
+                            onChange={handleInputChange}
+                            className="pl-10 w-full px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-md focus:ring-green-500 focus:border-green-500 text-gray-900 dark:text-white"
+                        />
+                        <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                    </div>
+                </div>
+
+                {/* Address */}
+                <div>
+                    <label htmlFor="address" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Address
+                    </label>
+                    <div className="relative">
+                        <input
+                            type="text"
+                            id="address"
+                            name="address"
+                            value={settings.address}
+                            onChange={handleInputChange}
+                            className="pl-10 w-full px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-md focus:ring-green-500 focus:border-green-500 text-gray-900 dark:text-white"
+                        />
+                        <MapPin className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                    </div>
+                </div>
+
+                {/* Role (Read-Only) */}
+                <div>
+                    <label htmlFor="role" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Role
+                    </label>
+                    <div className="relative">
+                        <input
+                            type="text"
+                            id="role"
                             value={settings.role}
                             readOnly
                             className="pl-10 w-full px-4 py-2 border border-gray-300 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 rounded-md text-gray-900 dark:text-white"
@@ -121,35 +188,73 @@ export default function AdminSettingsPage() {
                     </div>
                 </div>
 
-                {/* Checkboxes */}
-                {[
-                    { label: 'Receive email notifications', name: 'notifications', icon: Bell },
-                    { label: 'Auto-approve waste reports', name: 'autoApproveReports', icon: Settings },
-                    { label: 'Assign collection tasks automatically', name: 'assignTasksAutomatically', icon: Settings },
-                ].map(({ label, name, icon: Icon }) => (
-                    <div key={name} className="flex items-center">
-                        <input
-                            type="checkbox"
-                            id={name}
-                            name={name}
-                            checked={settings[name]}
-                            onChange={handleInputChange}
-                            className="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
-                        />
-                        <label htmlFor={name} className="ml-2 block text-sm text-gray-700 dark:text-gray-300 items-center">
-                            <Icon className="w-4 h-4 mr-1" />
-                            {label}
-                        </label>
-                    </div>
-                ))}
+                {/* Additional Fields for Specific Roles */}
+                {settings.role === 'collector' && (
+                    <>
+                        <div>
+                            <label htmlFor="collection_area" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Collection Area
+                            </label>
+                            <input
+                                type="text"
+                                id="collection_area"
+                                name="collection_area"
+                                value={settings.collection_area}
+                                onChange={handleInputChange}
+                                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-md focus:ring-green-500 focus:border-green-500 text-gray-900 dark:text-white"
+                            />
+                        </div>
+                        <div>
+                            <label htmlFor="vehicle_number" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Vehicle Number
+                            </label>
+                            <input
+                                type="text"
+                                id="vehicle_number"
+                                name="vehicle_number"
+                                value={settings.vehicle_number}
+                                onChange={handleInputChange}
+                                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-md focus:ring-green-500 focus:border-green-500 text-gray-900 dark:text-white"
+                            />
+                        </div>
+                        <div>
+                            <label htmlFor="license_number" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                License Number
+                            </label>
+                            <input
+                                type="text"
+                                id="license_number"
+                                name="license_number"
+                                value={settings.license_number}
+                                onChange={handleInputChange}
+                                className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-md focus:ring-green-500 focus:border-green-500 text-gray-900 dark:text-white"
+                            />
+                        </div>
+                    </>
+                )}
 
-                {/* Save Button */}
+                {settings.role === 'user' && (
+                    <div>
+                        <label htmlFor="waste_collection_frequency" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Waste Collection Frequency
+                        </label>
+                        <input
+                            type="text"
+                            id="waste_collection_frequency"
+                            name="waste_collection_frequency"
+                            value={settings.waste_collection_frequency}
+                            onChange={handleInputChange}
+                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 rounded-md focus:ring-green-500 focus:border-green-500 text-gray-900 dark:text-white"
+                        />
+                    </div>
+                )}
+
                 <button
                     type="submit"
                     className="w-full flex items-center justify-center px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-md transition-all duration-200 ease-in-out"
-                    disabled={loading}
+                    disabled={isUpdating}
                 >
-                    {loading ? (
+                    {isUpdating ? (
                         <>
                             <Loader2 className="w-4 h-4 animate-spin mr-2" />
                             Saving...
@@ -163,5 +268,5 @@ export default function AdminSettingsPage() {
                 </button>
             </form>
         </motion.div>
-    )
+    );
 }
