@@ -18,9 +18,11 @@ const ReportPage = () => {
     const { data: userReports = [], refetch: refetchReports } = useGetReportsByUserQuery();
 
     const [newReport, setNewReport] = useState({
+        image: '',
         location: '',
         waste_type: '',
         amount: '',
+        verification_result: '',
     });
     const [file, setFile] = useState(null);
     const [preview, setPreview] = useState(null);
@@ -63,7 +65,6 @@ const ReportPage = () => {
             setFile(selectedFile);
             const reader = new FileReader();
             reader.onload = (event) => {
-                // Use full data URL for preview only.
                 setPreview(event.target.result);
             };
             reader.readAsDataURL(selectedFile);
@@ -109,7 +110,12 @@ const ReportPage = () => {
             "confidence": confidence level as a number between 0 and 1
             }`;
 
+            // Send the request to the model and get the result
             const result = await model.generateContent([prompt, ...imageParts]);
+
+            // Log the raw response to understand its structure
+            console.log("Raw verification result:", result);
+
             const rawText = await result.response.text();
 
             // Clean markdown formatting.
@@ -164,14 +170,19 @@ const ReportPage = () => {
                 formData.append('image', file);
             }
             if (verificationResult) {
-                formData.append('verification', JSON.stringify(verificationResult));
+                formData.append('verification_result', JSON.stringify(verificationResult));
             }
 
             await createReport(formData).unwrap();
             refetchReports();
 
             // Reset form state.
-            setNewReport({ location: '', waste_type: '', amount: '' });
+            setNewReport({
+                image: '',
+                location: '',
+                waste_type: '',
+                amount: '',
+                verification_result: '', });
             setFile(null);
             setPreview(null);
             setVerificationStatus('idle');

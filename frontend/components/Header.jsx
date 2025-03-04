@@ -156,12 +156,14 @@ const Header = ({ onMenuClick, totalEarnings }) => {
               </DropdownMenu>
 
               {/* Total Earnings */}
-              <div className="mr-2 md:mr-4 flex items-center bg-gray-100 rounded-full px-2 md:px-3 py-1">
-                <Coins className="h-4 w-4 md:h-5 md:w-5 mr-1 text-green-500" />
-                <span className="font-semibold text-sm md:text-base text-gray-800">
-                  {(Number(balance) || 0).toFixed(2)}
-                </span>
-              </div>
+              {(userInfo.role === 'user' || userInfo.role === 'collector') && (
+                <div className="mr-2 md:mr-4 flex items-center bg-gray-100 rounded-full px-2 md:px-3 py-1">
+                  <Coins className="h-4 w-4 md:h-5 md:w-5 mr-1 text-green-500" />
+                  <span className="font-semibold text-sm md:text-base text-gray-800">
+                    {(Number(balance) || 0).toFixed(2)}
+                  </span>
+                </div>
+              )}
 
               {/* User Profile Dropdown */}
               <DropdownMenu>

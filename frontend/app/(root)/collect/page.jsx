@@ -10,11 +10,10 @@ import { useCurrentUserQuery } from "../../../store/features/auth/authApi";
 import { useCreateCollectedWasteMutation, useGetWasteCollectionTasksQuery } from '../../../store/features/waste/wasteApi';
 import StatusBadge from '@/components/containers/StatusBadge';
 
-const geminiApiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY
-const ITEMS_PER_PAGE = 5
+const geminiApiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
+const ITEMS_PER_PAGE = 5;
 
 const CollectPage = () => {
-
     const { data: userInfo } = useCurrentUserQuery();
     const { data: tasks = [], isLoading } = useGetWasteCollectionTasksQuery();
     const [createCollection] = useCreateCollectedWasteMutation();
@@ -43,10 +42,9 @@ const CollectPage = () => {
         }
 
         try {
-            // newStatus is set server-side to 'collected'
             const response = await createCollection({
                 reportId: taskId,
-                status: newStatus
+                status: newStatus,
             }).unwrap();
 
             if (response) {
@@ -69,10 +67,11 @@ const CollectPage = () => {
         setVerificationStatus('verifying');
 
         try {
-            // Verification logic here...
+            // Initialize the Google Generative AI instance
             const genAI = new GoogleGenerativeAI(geminiApiKey);
             const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
 
+            // Prepare the base64 image data
             const base64Data = verificationImage.split(',')[1];
             const imageParts = [
                 {
@@ -80,40 +79,62 @@ const CollectPage = () => {
                 },
             ];
 
+            // Define the prompt for the generative model
             const prompt = `You are an expert in waste management and recycling. Analyze this image and provide:
-                1. Confirm if the waste type matches: ${selectedTask.wasteType}
-                2. Estimate if the quantity matches: ${selectedTask.amount}
-                3. Your confidence level in this assessment (as a percentage)
+            1. Confirm if the waste type matches: ${selectedTask.waste_type}
+            2. Estimate if the quantity matches: ${selectedTask.amount}
+            3. Your confidence level in this assessment (as a number between 0 and 1)
 
-                Respond in JSON format like this:
-                {
-                "wasteTypeMatch": true/false,
-                "quantityMatch": true/false,
-                "confidence": confidence level as a number between 0 and 1
+            Respond in JSON format like this:
+            {
+            "wasteTypeMatch": true/false,
+            "quantityMatch": true/false,
+            "confidence": <number>
             }`;
 
+            // Send the request to the model and get the result
             const result = await model.generateContent([prompt, ...imageParts]);
-            const parsedResult = JSON.parse(result.response.text());
-            setVerificationResult(parsedResult);
-            setVerificationStatus('success');
+            console.log("Raw verification result:", result);
 
-            // Assuming verification is successful:
+            // Extract and clean the raw text response
+            const rawText = await result.response.text();
+            const cleanedText = rawText.replace(/```(json)?/g, '').trim();
+            const parsedResult = JSON.parse(cleanedText);
+
+            // Validate the parsed result structure
             if (
-                parsedResult.wasteTypeMatch &&
-                parsedResult.quantityMatch &&
-                parsedResult.confidence > 0.7
+                typeof parsedResult.wasteTypeMatch === 'boolean' &&
+                typeof parsedResult.quantityMatch === 'boolean' &&
+                typeof parsedResult.confidence === 'number'
             ) {
-                await handleStatusChange(selectedTask.id, 'verified');
-                const earnedReward = Math.floor(Math.random() * 50) + 10;
-                toast.success(`Verification successful! You earned ${earnedReward} tokens.`);
+                setVerificationResult(parsedResult);
+                setVerificationStatus('success');
+
+                // Check if the verification criteria are met
+                if (
+                    parsedResult.wasteTypeMatch &&
+                    parsedResult.quantityMatch &&
+                    parsedResult.confidence > 0.7
+                ) {
+                    await handleStatusChange(selectedTask.id, 'verified');
+                    const earnedReward = Math.floor(Math.random() * 50) + 10; // Random reward between 10 and 60 tokens
+                    toast.success(`Verification successful! You earned ${earnedReward} tokens.`);
+                } else {
+                    toast.error('Verification failed. Waste does not match.');
+                }
             } else {
-                toast.error('Verification failed. Waste does not match.');
+                console.error('Error parsing verification response:', parsedResult);
+                toast.error('Verification failed: Invalid response from the model.');
+                setVerificationStatus('failure');
+                return;
             }
         } catch (error) {
             console.error('Verification error:', error);
+            toast.error('Verification failed. Please try again.');
             setVerificationStatus('failure');
         }
     };
+
 
     const filteredTasks = tasks.filter((task) =>
         task.location.toLowerCase().includes(searchTerm.toLowerCase())
@@ -150,7 +171,7 @@ const CollectPage = () => {
                 <>
                     <div className="space-y-4">
                         {Array.isArray(paginatedTasks) && paginatedTasks.length > 0 ? (
-                            paginatedTasks.map(task => (
+                            paginatedTasks.map((task) => (
                                 <div key={task.id} className="bg-white p-4 rounded-lg shadow-sm border border-gray-200">
                                     <div className="flex justify-between items-center mb-2">
                                         <h2 className="text-lg font-medium text-gray-800 flex items-center">
@@ -163,15 +184,15 @@ const CollectPage = () => {
                                         <div className="flex items-center relative">
                                             <Trash2 className="w-4 h-4 mr-2 text-gray-500" />
                                             <span
-                                                onMouseEnter={() => setHoveredWasteType(task.wasteType)}
+                                                onMouseEnter={() => setHoveredWasteType(task.waste_type)}
                                                 onMouseLeave={() => setHoveredWasteType(null)}
                                                 className="cursor-pointer"
                                             >
-                                                {task.wasteType?.length > 8 ? `${task.wasteType.slice(0, 8)}...` : task.wasteType}
+                                                {task.waste_type?.length > 8 ? `${task.waste_type.slice(0, 8)}...` : task.waste_type}
                                             </span>
-                                            {hoveredWasteType === task.wasteType && (
+                                            {hoveredWasteType === task.waste_type && (
                                                 <div className="absolute left-0 top-full mt-1 p-2 bg-gray-800 text-white text-xs rounded shadow-lg z-10">
-                                                    {task.wasteType}
+                                                    {task.waste_type}
                                                 </div>
                                             )}
                                         </div>
@@ -181,7 +202,7 @@ const CollectPage = () => {
                                         </div>
                                         <div className="flex items-center">
                                             <Calendar className="w-4 h-4 mr-2 text-gray-500" />
-                                            {task.date}
+                                            {task.created_at}
                                         </div>
                                     </div>
                                     <div className="flex justify-end">
@@ -195,9 +216,6 @@ const CollectPage = () => {
                                                 Complete & Verify
                                             </Button>
                                         )}
-                                        {/* {task.status === 'in_progress' && task.collector !== userInfo?.id && (
-                                            <span className="text-yellow-600 text-sm font-medium">In progress by another collector</span>
-                                        )} */}
                                         {task.status === 'verified' && (
                                             <span className="text-green-600 text-sm font-medium">Reward Earned</span>
                                         )}
@@ -211,7 +229,7 @@ const CollectPage = () => {
 
                     <div className="mt-4 flex justify-center">
                         <Button
-                            onClick={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                            onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
                             disabled={currentPage === 1}
                             className="mr-2"
                         >
@@ -221,7 +239,7 @@ const CollectPage = () => {
                             Page {currentPage} of {pageCount}
                         </span>
                         <Button
-                            onClick={() => setCurrentPage(prev => Math.min(prev + 1, pageCount))}
+                            onClick={() => setCurrentPage((prev) => Math.min(prev + 1, pageCount))}
                             disabled={currentPage === pageCount}
                             className="ml-2"
                         >
@@ -235,7 +253,9 @@ const CollectPage = () => {
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
                     <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
                         <h3 className="text-xl font-semibold mb-4">Verify Collection</h3>
-                        <p className="mb-4 text-sm text-gray-600">Upload a photo of the collected waste to verify and earn your reward.</p>
+                        <p className="mb-4 text-sm text-gray-600">
+                            Upload a photo of the collected waste to verify and earn your reward.
+                        </p>
                         <div className="mb-4">
                             <label htmlFor="verification-image" className="block text-sm font-medium text-gray-700 mb-2">
                                 Upload Image
@@ -249,7 +269,14 @@ const CollectPage = () => {
                                             className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500"
                                         >
                                             <span>Upload a file</span>
-                                            <input id="verification-image" name="verification-image" type="file" className="sr-only" onChange={handleImageUpload} accept="image/*" />
+                                            <input
+                                                id="verification-image"
+                                                name="verification-image"
+                                                type="file"
+                                                className="sr-only"
+                                                onChange={handleImageUpload}
+                                                accept="image/*"
+                                            />
                                         </label>
                                     </div>
                                     <p className="text-xs text-gray-500">PNG, JPG, GIF up to 10MB</p>
@@ -269,7 +296,9 @@ const CollectPage = () => {
                                     <Loader className="animate-spin -ml-1 mr-3 h-5 w-5" />
                                     Verifying...
                                 </>
-                            ) : 'Verify Collection'}
+                            ) : (
+                                'Verify Collection'
+                            )}
                         </Button>
                         {verificationStatus === 'success' && verificationResult && (
                             <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-md">
@@ -288,7 +317,7 @@ const CollectPage = () => {
                 </div>
             )}
         </div>
-    )
-}
+    );
+};
 
-export default CollectPage
+export default CollectPage;

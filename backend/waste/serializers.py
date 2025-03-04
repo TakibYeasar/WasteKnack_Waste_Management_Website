@@ -4,7 +4,8 @@ from .models import *
 class ReportCreateUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Report
-        fields = ["location", "waste_type", "amount"]
+        fields = ["image", "location", "waste_type",
+                  "amount", "verification_result"]
 
 
 class ReportSerializer(serializers.ModelSerializer):

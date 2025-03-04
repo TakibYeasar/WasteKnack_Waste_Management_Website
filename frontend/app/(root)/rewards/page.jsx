@@ -89,7 +89,7 @@ export default function RewardsPage() {
                     <div className="space-y-4">
                         {rewards?.available_rewards?.length > 0 ? (
                             rewards.available_rewards.map((reward) => (
-                                <AvailableRewards key={reward.id} reward={reward} balance={balance} />
+                                <AvailableRewards key={reward.id} userInfo={userInfo} reward={reward} balance={balance} />
                             ))
                         ) : (
                             <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-md">

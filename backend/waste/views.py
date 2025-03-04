@@ -10,6 +10,7 @@ from user.models import Reward
 from transaction.models import Transaction
 from notification.models import Notification
 
+
 class ReportViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
     queryset = Report.objects.all().order_by('-created_at')
@@ -101,42 +102,37 @@ class CollectedWasteViewSet(viewsets.ModelViewSet):
                 )
                 report.status = 'in_progress'
                 report.save()
-
-                reward = Reward.objects.create(
-                    user=user,
-                    name="Waste Collection Reward",
-                    points=10
-                )
-
-                Transaction.objects.create(
-                    user=user,
-                    trans_type='earned',
-                    amount=reward.points,
-                    description=f"Reward earned: {reward.name}"
-                )
-
-            return Response(CollectedWasteSerializer(collected_waste).data, status=201)
+                return Response(CollectedWasteSerializer(collected_waste).data, status=201)
         return Response(serializer.errors, status=400)
 
     def partial_update(self, request, *args, **kwargs):
-        """Handles PATCH request to update the report status."""
+        """Handles PATCH request to update the collected waste status."""
         user = request.user
-        report_id = kwargs.get('pk')
-        report = get_object_or_404(Report, id=report_id)
+        collected_waste = get_object_or_404(
+            CollectedWaste, id=kwargs.get('pk'))
         new_status = request.data.get('status')
-        collector_id = request.data.get('collector')
 
-        if new_status not in dict(Report.STATUS_CHOICES):
+        if new_status not in dict(CollectedWaste.STATUS_CHOICES):
             return Response({'error': 'Invalid status'}, status=status.HTTP_400_BAD_REQUEST)
 
-        update_data = {'status': new_status}
+        with transaction.atomic():
+            if collected_waste.status != 'verified':
+                collected_waste.status = new_status
+                collected_waste.save()
 
-        if collector_id:
-            collector = get_object_or_404(user.__class__, id=collector_id)
-            update_data['collector'] = collector
+                if new_status == 'verified':
+                    reward = Reward.objects.create(
+                        user=collected_waste.collector,
+                        name="Waste Collection Reward",
+                        points=10
+                    )
 
-        serializer = ReportSerializer(report, data=update_data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+                    Transaction.objects.create(
+                        user=collected_waste.collector,
+                        trans_type='earned',
+                        amount=reward.points,
+                        description=f"Reward earned: {reward.name}"
+                    )
+
+        return Response(CollectedWasteSerializer(collected_waste).data)
+
