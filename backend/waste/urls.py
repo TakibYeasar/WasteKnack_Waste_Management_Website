@@ -10,6 +10,10 @@ router.register(r'collected-waste', CollectedWasteViewSet,
 
 urlpatterns = [
     path('', include(router.urls)),  # Includes all routes from viewsets
+    path('dashboard/', DashboardOverview.as_view(), name='dashboard_overview'),
+    path('manage-reports/', ManageReportsView.as_view(), name='manage-reports'),
+    path('reports/<int:pk>/remove/',
+         RemoveReportView.as_view(), name='remove-report'),
     path('pending-reports/', PendingReportsListView.as_view(),
          name='pending-reports'),
     path('recent-reports/', RecentReportsListView.as_view(), name='recent-reports'),

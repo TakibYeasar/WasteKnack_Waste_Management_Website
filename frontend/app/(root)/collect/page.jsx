@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { toast } from 'react-hot-toast';
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { useCurrentUserQuery } from "../../../store/features/auth/authApi";
-import { useCreateCollectedWasteMutation, useGetWasteCollectionTasksQuery } from '../../../store/features/waste/wasteApi';
+import { useCreateCollectedWasteMutation, useUpdateCollectedWasteStatusMutation, useGetWasteCollectionTasksQuery } from '../../../store/features/waste/wasteApi';
 import StatusBadge from '@/components/containers/StatusBadge';
 
 const geminiApiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
@@ -17,6 +17,7 @@ const CollectPage = () => {
     const { data: userInfo } = useCurrentUserQuery();
     const { data: tasks = [], isLoading } = useGetWasteCollectionTasksQuery();
     const [createCollection] = useCreateCollectedWasteMutation();
+    const [updateCollectionStatus] = useUpdateCollectedWasteStatusMutation();
 
     const [hoveredWasteType, setHoveredWasteType] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
@@ -35,7 +36,7 @@ const CollectPage = () => {
         }
     };
 
-    const handleStatusChange = async (taskId, newStatus) => {
+    const handleStartCollection = async (taskId, newStatus) => {
         if (!userInfo) {
             toast.error('Please log in to collect waste.');
             return;
@@ -44,6 +45,28 @@ const CollectPage = () => {
         try {
             const response = await createCollection({
                 reportId: taskId,
+            }).unwrap();
+
+            if (response) {
+                toast.success('Task status updated successfully.');
+            } else {
+                toast.error('Failed to update task status. Please try again.');
+            }
+        } catch (error) {
+            console.error('Error updating task status:', error);
+            toast.error(error?.data?.error || 'Failed to update task status. Please try again.');
+        }
+    };
+
+    const handleStatusChange = async (taskId, newStatus) => {
+        if (!userInfo) {
+            toast.error('Please log in to collect waste.');
+            return;
+        }
+
+        try {
+            const response = await updateCollectionStatus({
+                wasteId: taskId,
                 status: newStatus,
             }).unwrap();
 
@@ -207,7 +230,7 @@ const CollectPage = () => {
                                     </div>
                                     <div className="flex justify-end">
                                         {task.status === 'pending' && (
-                                            <Button onClick={() => handleStatusChange(task.id, 'in_progress')} variant="outline" size="sm">
+                                            <Button onClick={() => handleStartCollection(task.id)} variant="outline" size="sm">
                                                 Start Collection
                                             </Button>
                                         )}

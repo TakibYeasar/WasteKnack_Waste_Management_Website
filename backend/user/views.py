@@ -7,8 +7,59 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from transaction.models import Transaction
+from rest_framework.exceptions import PermissionDenied
 from .models import Reward
 from .serializers import *
+from authapi.models import CustomUser
+
+
+class ManageUserView(generics.ListAPIView):
+    queryset = CustomUser.objects.all()
+    serializer_class = UserSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        if self.request.user.role != "admin":
+            raise PermissionDenied("You do not have permission to view users.")
+        return super().get_queryset()
+
+
+class ChangeUserRoleView(generics.UpdateAPIView):
+    queryset = CustomUser.objects.all()
+    serializer_class = UserSerializer
+    permission_classes = [IsAuthenticated]
+    lookup_field = 'id'
+
+    def update(self, request, *args, **kwargs):
+        if request.user.role != 'admin':
+            raise PermissionDenied(
+                "You do not have permission to update user roles.")
+
+        user = get_object_or_404(CustomUser, id=kwargs['id'])
+        new_role = request.data.get('role')
+
+        if new_role not in dict(CustomUser.ROLE_CHOICES):
+            return Response({"error": "Invalid role."}, status=status.HTTP_400_BAD_REQUEST)
+
+        user.role = new_role
+        user.save()
+        return Response({"message": "Role updated successfully."}, status=status.HTTP_200_OK)
+
+
+class RemoveUserView(generics.DestroyAPIView):
+    queryset = CustomUser.objects.all()
+    permission_classes = [IsAuthenticated]
+    lookup_field = 'id'
+
+    def destroy(self, request, *args, **kwargs):
+        if request.user.role != 'admin':
+            raise PermissionDenied(
+                "You do not have permission to delete users.")
+
+        user = get_object_or_404(CustomUser, id=kwargs['id'])
+        user.delete()
+        return Response({"message": "User deleted successfully."}, status=status.HTTP_204_NO_CONTENT)
+    
 
 class UserProfileView(generics.RetrieveUpdateAPIView):
     serializer_class = UserProfileSerializer

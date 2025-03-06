@@ -3,6 +3,27 @@ import { USERS_URL } from "../../constant";
 
 export const userApi = apiSlice.injectEndpoints({
     endpoints: (builder) => ({
+        manageUsers: builder.query({
+            query: () => ({
+                url: `${USERS_URL}/manage-users/`,
+            })
+        }),
+
+        changeUserRole: builder.mutation({
+            query: ({ userId, role }) => ({
+                url: `${USERS_URL}/user/${userId}/change-role/`,
+                method: "PUT",
+                body: { role },
+            }),
+        }),
+
+        removeUser: builder.mutation({
+            query: (id) => ({
+                url: `${USERS_URL}/user/${id}/remove/`,
+                method: "DELETE",
+            }),
+        }),
+
         getUserProfile: builder.query({
             query: () => `${USERS_URL}/profile/`,
         }),
@@ -41,6 +62,9 @@ export const userApi = apiSlice.injectEndpoints({
 });
 
 export const {
+    useManageUsersQuery,
+    useChangeUserRoleMutation,
+    useRemoveUserMutation,
     useGetUserProfileQuery,
     useUpdateUserProfileMutation,
     useUpdateRewardPointsMutation,

@@ -15,8 +15,7 @@ class ReportAdmin(admin.ModelAdmin):
 
 @admin.register(CollectedWaste)
 class CollectedWasteAdmin(admin.ModelAdmin):
-    list_display = ('id', 'report', 'collector', 'collection_date', 'status')
-    list_filter = ('status',)
+    list_display = ('id', 'report', 'collector', 'collection_date')
     search_fields = ('collector__email', 'report__id')
     date_hierarchy = 'collection_date'
     ordering = ('-collection_date',)

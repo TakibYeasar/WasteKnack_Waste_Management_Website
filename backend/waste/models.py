@@ -6,6 +6,7 @@ from django.db.models import F
 class Report(models.Model):
     STATUS_CHOICES = [
         ('pending', 'Pending'),
+        ('in_progress', 'In Progress'),
         ('verified', 'Verified'),
         ('rejected', 'Rejected'),
     ]
@@ -41,19 +42,11 @@ class Report(models.Model):
 
 
 class CollectedWaste(models.Model):
-    STATUS_CHOICES = [
-        ('pending', 'Pending'),
-        ('in_progress', 'In Progress'),
-        ('verified', 'Verified'),
-    ]
-
     report = models.ForeignKey(
         Report, related_name='collected_wastes', on_delete=models.CASCADE)
     collector = models.ForeignKey(
         settings.AUTH_USER_MODEL, related_name='collections', on_delete=models.CASCADE)
     collection_date = models.DateTimeField(auto_now_add=True)
-    status = models.CharField(
-        max_length=20, choices=STATUS_CHOICES, default='in_progress')
 
     def __str__(self):
         return f"CollectedWaste {self.id} by {self.collector.email}"

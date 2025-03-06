@@ -3,6 +3,21 @@ import { WASTE_URL } from "../../constant";
 
 export const wasteApi = apiSlice.injectEndpoints({
     endpoints: (builder) => ({
+        dashboardOverview: builder.query({
+            query: () => `${WASTE_URL}/dashboard/`,
+        }),
+
+        manageReports: builder.query({
+            query: () => `${WASTE_URL}/manage-reports/`,
+        }),
+
+        removeReport: builder.mutation({
+            query: (id) => ({
+                url: `${WASTE_URL}/reports/${id}/remove/`,
+                method: "DELETE",
+            }),
+        }),
+
         createReport: builder.mutation({
             query: (newReport) => ({
                 url: `${WASTE_URL}/reports/`,
@@ -31,6 +46,14 @@ export const wasteApi = apiSlice.injectEndpoints({
             }),
         }),
 
+        updateCollectedWasteStatus: builder.mutation({
+            query: ({ wasteId, status }) => ({
+                url: `${WASTE_URL}/collected-waste/${wasteId}/`,
+                method: 'PATCH',
+                body: { status },
+            }),
+        }),
+
         getCollectedWastesByCollector: builder.query({
             query: () => `${WASTE_URL}/collected-waste/`,
         }),
@@ -42,11 +65,15 @@ export const wasteApi = apiSlice.injectEndpoints({
 });
 
 export const {
+    useDashboardOverviewQuery,
+    useManageReportsQuery,
+    useRemoveReportMutation,
     useCreateReportMutation,
     useGetReportsByUserQuery,
     useGetPendingReportsQuery,
     useGetRecentReportsQuery,
     useCreateCollectedWasteMutation,
+    useUpdateCollectedWasteStatusMutation,
     useGetCollectedWastesByCollectorQuery,
     useGetWasteCollectionTasksQuery,
 } = wasteApi;
