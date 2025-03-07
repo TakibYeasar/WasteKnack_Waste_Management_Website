@@ -2,12 +2,12 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { usePasswordResetRequestMutation } from '../../../store/features/auth/authSlice';
+import { useRequestPasswordResetMutation } from '../../../store/features/auth/authApi';
 
 const ForgotPassword = () => {
     const [email, setEmail] = useState('');
     const [message, setMessage] = useState('');
-    const [sendResetLink, { isLoading, error }] = usePasswordResetRequestMutation();
+    const [sendResetLink, { isLoading, error }] = useRequestPasswordResetMutation();
     const router = useRouter();
 
     const handleClose = () => {
