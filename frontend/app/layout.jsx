@@ -25,13 +25,11 @@ const geistMono = localFont({
 
 const protectedRoutes = [
   { path: "/admin-dashboard", roles: ["admin"] },
-  { path: "/leaderboard", roles: ["admin", "user", "collector"] },
-  { path: "/settings", roles: ["admin"] },
-  { path: "/user-dashboard", roles: ["user"] },
   { path: "/report", roles: ["user"] },
-  { path: "/rewards", roles: ["user", "collector"] },
-  { path: "/collector-dashboard", roles: ["collector"] },
   { path: "/collect", roles: ["collector"] },
+  { path: "/rewards", roles: ["user", "collector"] },
+  { path: "/leaderboard", roles: ["admin", "user", "collector"] },
+  { path: "/settings", roles: ["admin", "user", "collector"] },
 ];
 
 function MainLayout({ children }) {
