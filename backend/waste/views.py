@@ -67,7 +67,7 @@ class ReportViewSet(viewsets.ModelViewSet):
         if user.role == 'user':
             return Report.objects.filter(user=user)
         elif user.role == 'collector':
-            return Report.objects.filter(status='verified')
+            return Report.objects.filter(collected_wastes__collector=user)
         return super().get_queryset()
 
     def create(self, request, *args, **kwargs):
@@ -80,9 +80,17 @@ class ReportViewSet(viewsets.ModelViewSet):
         if serializer.is_valid():
             with transaction.atomic():
                 report = serializer.save(user=user, status='pending')
-                reward, _ = Reward.objects.get_or_create(user=user)
-                reward.points += 10
-                reward.save()
+                
+                reward, created = Reward.objects.get_or_create(
+                    user=user,
+                    name="Waste Report Reward",
+                    defaults={'points': 10}
+                )
+
+                if not created:
+                    reward.points += 10
+                    reward.save()
+
 
                 Transaction.objects.create(
                     user=user, trans_type='earned', amount=10,
@@ -95,6 +103,46 @@ class ReportViewSet(viewsets.ModelViewSet):
                 )
             return Response(ReportSerializer(report).data, status=201)
         return Response(serializer.errors, status=400)
+    
+    def update(self, request, *args, **kwargs):
+        report = self.get_object()  # Retrieved via get_queryset, which filters by collector
+        user = request.user
+
+        # Check if the user is a collector assigned to this report
+        if user.role == 'collector' and not report.collected_wastes.filter(collector=user).exists():
+            raise PermissionDenied(
+                "You are not assigned to collect this report.")
+
+        new_status = request.data.get('status')
+
+        # Validate the new status
+        if new_status not in dict(report.STATUS_CHOICES):
+            return Response({'error': 'Invalid status'}, status=status.HTTP_400_BAD_REQUEST)
+
+        with transaction.atomic():
+            if new_status == 'verified' and report.status != 'verified':
+                report.status = 'verified'
+                report.save()
+
+                # Reward the collector
+                reward, created = Reward.objects.get_or_create(
+                    user=user,
+                    name="Waste Collection Reward",
+                    defaults={'points': 10}
+                )
+
+                if not created:
+                    reward.points += 10
+                    reward.save()
+
+                Transaction.objects.create(
+                    user=user,
+                    trans_type='earned',
+                    amount=10,
+                    description=f"Reward earned: Waste Collection"
+                )
+
+            return Response(ReportSerializer(report).data, status=status.HTTP_200_OK)
 
 
 class PendingReportsListView(generics.ListAPIView):
@@ -131,7 +179,6 @@ class CollectedWasteViewSet(viewsets.ModelViewSet):
         return super().get_queryset()
 
     def create(self, request, *args, **kwargs):
-        """Create a new collected waste entry."""
         user = request.user
         report_id = request.data.get('report_id')
         report = get_object_or_404(Report, id=report_id)
@@ -160,47 +207,4 @@ class CollectedWasteViewSet(viewsets.ModelViewSet):
         # If validation fails, return errors
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-    def patch(self, request, *args, **kwargs):
-        """Handle PATCH requests to update the collected waste status."""
-        user = request.user
-        collected_waste = get_object_or_404(
-            CollectedWaste, id=kwargs.get('pk'))
-        new_status = request.data.get('status')
-
-        if user.role != 'collector':
-            raise PermissionDenied(
-                "You do not have permission to collect waste.")
-
-        if new_status not in dict(CollectedWaste.STATUS_CHOICES):
-            return Response({'error': 'Invalid status'}, status=status.HTTP_400_BAD_REQUEST)
-
-        with transaction.atomic():
-            # Update the collected waste status
-            collected_waste.roport.status = new_status
-            collected_waste.save()
-
-            # If the status is "verified", update the report and create rewards/transactions
-            if new_status == 'verified':
-                report = collected_waste.report
-                if report.status != 'verified':  # Prevent updating if already verified
-                    report.status = 'verified'
-                    report.save()
-
-                    # Reward the collector
-                    reward = Reward.objects.create(
-                        user=collected_waste.collector,
-                        name="Waste Collection Reward",
-                        points=10
-                    )
-
-                    # Record the transaction
-                    Transaction.objects.create(
-                        user=collected_waste.collector,
-                        trans_type='earned',
-                        amount=reward.points,
-                        description=f"Reward earned: {reward.name}"
-                    )
-
-            # Return the updated CollectedWaste details
-            return Response(CollectedWasteSerializer(collected_waste).data)
-
+    

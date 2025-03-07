@@ -22,7 +22,7 @@ urlpatterns = [
     # Explicitly define the URLs for other views
     path('update-rewards-points/', UpdateRewardPointsView.as_view(),
          name='update-reward-points'),
-    path('all-rewards', GetAllRewardsView.as_view(), name='all-rewards'),
+    path('all-rewards/', GetAllRewardsView.as_view(), name='all-rewards'),
     path('available-rewards/', GetAvailableRewardsView.as_view(),
          name='available-rewards'),
     path('redeem-reward/<int:reward_id>/',

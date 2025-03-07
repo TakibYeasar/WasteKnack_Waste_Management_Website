@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { toast } from 'react-hot-toast';
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { useCurrentUserQuery } from "../../../store/features/auth/authApi";
-import { useCreateCollectedWasteMutation, useUpdateCollectedWasteStatusMutation, useGetWasteCollectionTasksQuery } from '../../../store/features/waste/wasteApi';
+import { useCreateCollectedWasteMutation, useUpdateReportStatusMutation, useGetWasteCollectionTasksQuery } from '../../../store/features/waste/wasteApi';
 import StatusBadge from '@/components/containers/StatusBadge';
 
 const geminiApiKey = process.env.NEXT_PUBLIC_GEMINI_API_KEY;
@@ -17,7 +17,7 @@ const CollectPage = () => {
     const { data: userInfo } = useCurrentUserQuery();
     const { data: tasks = [], isLoading } = useGetWasteCollectionTasksQuery();
     const [createCollection] = useCreateCollectedWasteMutation();
-    const [updateCollectionStatus] = useUpdateCollectedWasteStatusMutation();
+    const [updateReportStatus] = useUpdateReportStatusMutation();
 
     const [hoveredWasteType, setHoveredWasteType] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
@@ -65,8 +65,8 @@ const CollectPage = () => {
         }
 
         try {
-            const response = await updateCollectionStatus({
-                wasteId: taskId,
+            const response = await updateReportStatus({
+                reportId: taskId,
                 status: newStatus,
             }).unwrap();
 

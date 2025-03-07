@@ -22,6 +22,8 @@ class ReportCollectorSerializer(serializers.ModelSerializer):
 
 class ReportSerializer(serializers.ModelSerializer):
     collected_wastes = ReportCollectorSerializer(many=True, read_only=True)
+    created_at = serializers.DateTimeField(
+        format="%Y-%m-%d")
 
     class Meta:
         model = Report
