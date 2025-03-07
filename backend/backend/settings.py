@@ -160,6 +160,7 @@ ALLOWED_HOSTS = [
 
 
 CORS_ALLOWED_ORIGINS = [
+    "waste-knack-waste-management-website.vercel.app",
     "http://localhost:3000",
 ]
 
