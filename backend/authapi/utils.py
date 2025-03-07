@@ -30,8 +30,8 @@ def send_email(request, mail_subject, user):
     mail = EmailMessage(mail_subject, message, from_email, t=[to_email])
     mail.send()
     
-    print(f"Subject: {mail_subject}\nFrom: {
-          from_email}\nTo: {to_email}\n{message}")
+    print(f"Subject: {mail_subject}\nFrom: {from_email}\nTo: {to_email}\n{message}")
+
 
 
 def send_generated_otp_to_email(request, email):
@@ -61,7 +61,7 @@ def send_generated_otp_to_email(request, email):
     mail_subject = "One-Time Passcode for Email Verification"
     mail = EmailMessage(mail_subject, message, from_email, to=[user.email])
     mail.send()
+    
+    print(f"Subject: {mail_subject}\nFrom: {from_email}\nTo: {user.email}\n{message}")
 
-    print(f"Subject: {mail_subject}\nFrom: {
-          from_email}\nTo: {user.email}\n{message}")
 

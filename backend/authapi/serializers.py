@@ -91,8 +91,7 @@ class PasswordResetRequestSerializer(serializers.ModelSerializer):
                 'password-reset-confirm', kwargs={'uidb64': uidb64, 'token': token})
             abslink = f"http://{current_site}{relative_link}"
             mail_subject = "Reset your Password"
-            email_body = f"Hi {
-                user.first_name}, use the link below to reset your password:\n\n{abslink}"
+            email_body = f"Hi {user.first_name}, use the link below to reset your password:\n\n{abslink}"
 
             send_email(request, mail_subject, user)
             
