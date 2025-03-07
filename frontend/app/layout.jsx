@@ -7,6 +7,8 @@ import store from "../store/store";
 import { useGetAvailableRewardsQuery } from "@/store/features/user/userApi";
 import Header from "@/components/Header";
 import "./globals.css";
+import ProtectedRoute from "@/lib/ProtectedRoute";
+import { usePathname } from "next/navigation";
 
 // Define fonts
 const geistSans = localFont({
@@ -21,6 +23,17 @@ const geistMono = localFont({
   weight: "100 900",
 });
 
+const protectedRoutes = [
+  { path: "/admin-dashboard", roles: ["admin"] },
+  { path: "/leaderboard", roles: ["admin", "user", "collector"] },
+  { path: "/settings", roles: ["admin"] },
+  { path: "/user-dashboard", roles: ["user"] },
+  { path: "/report", roles: ["user"] },
+  { path: "/rewards", roles: ["user", "collector"] },
+  { path: "/collector-dashboard", roles: ["collector"] },
+  { path: "/collect", roles: ["collector"] },
+];
+
 function MainLayout({ children }) {
   // Fetch rewards data
   const { data: rewards, isError, isLoading } = useGetAvailableRewardsQuery();
@@ -31,21 +44,28 @@ function MainLayout({ children }) {
       <header>
         <Header totalEarnings={totalEarnings} />
       </header>
-      <main className="flex-1">
-        {children}
-      </main>
+      <main className="flex-1">{children}</main>
     </div>
   );
 }
 
 export default function RootLayout({ children }) {
+  const pathname = usePathname();
+  const isProtected = protectedRoutes.some((route) => route.path === pathname);
+
   return (
     <html lang="en">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-gray-50`}
       >
         <Provider store={store}>
-          <MainLayout>{children}</MainLayout>
+          {isProtected ? (
+            <ProtectedRoute allowedRoles={protectedRoutes.find(route => route.path === pathname)?.roles || []}>
+              <MainLayout>{children}</MainLayout>
+            </ProtectedRoute>
+          ) : (
+            <MainLayout>{children}</MainLayout>
+          )}
         </Provider>
         <Toaster />
       </body>
