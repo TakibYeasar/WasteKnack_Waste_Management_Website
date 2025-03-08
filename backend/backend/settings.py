@@ -30,7 +30,10 @@ SECRET_KEY = os.environ.get('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG')
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    'wasteknack-waste-management-website.onrender.com',
+    'localhost',
+]
 
 
 # Application definition
@@ -153,10 +156,6 @@ MEDIA_ROOT = os.path.join(STATIC_ROOT, 'media')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-ALLOWED_HOSTS = [
-    'wasteknack-waste-management-website.onrender.com',
-    'localhost',
-]
 
 
 CORS_ALLOWED_ORIGINS = [
