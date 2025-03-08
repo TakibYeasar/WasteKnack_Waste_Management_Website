@@ -159,7 +159,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
 CORS_ALLOWED_ORIGINS = [
-    "waste-knack-waste-management-website.vercel.app",
+    "https://waste-knack-waste-management-website.vercel.app",
     "http://localhost:3000",
 ]
 
